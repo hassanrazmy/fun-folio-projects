@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Adventures of Hassan - Interactive Comic</title>
+    <style>
+        /* CSS reset and fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
+        
+        :root {
+            --comic-bg: #fdf5e6;
+            --ink: #111;
+            --panel-border: #000;
+            --highlight: #f8c92a;
+            --accent-red: #e74c3c;
+            --accent-blue: #3498db;
+            --accent-green: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Comic Neue', cursive;
+            background: #4a3b32 url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%234a3b32"/><path d="M0 0l100 100M100 0L0 100" stroke="%233e312a" stroke-width="2" opacity="0.3"/></svg>'); /* Wooden desk texture */
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--ink);
+        }
+
+        /* Desk items */
+        .desk-item {
+            position: absolute;
+            pointer-events: auto;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .coffee-mug {
+            bottom: 50px;
+            right: 100px;
+            width: 80px;
+            height: 80px;
+            z-index: 0;
+        }
+        .pencil {
+            top: 50px;
+            left: 150px;
+            width: 150px;
+            height: 20px;
+            transform: rotate(-15deg);
+            z-index: 0;
+        }
+
+        /* Comic Book Container */
+        .comic-book {
+            width: 90vw;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 800px;
+            position: relative;
+            perspective: 2500px;
+            box-shadow: 20px 20px 30px rgba(0,0,0,0.5);
+            background: #2c3e50; /* Hardcover color */
+            border: 4px solid #1a252f;
+            border-radius: 4px;
+            z-index: 10;
+            display: flex;
+        }
+
+        .comic-book::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, transparent, rgba(0,0,0,0.3) 10%, rgba(255,255,255,0.1) 50%, rgba(0,0,0,0.3) 90%, transparent);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .inside-cover {
+            flex: 1;
+            height: 100%;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #34495e; /* Inner paper */
+            border: 10px solid #2c3e50;
+            color: #ecf0f1;
+            text-align: center;
+            font-family: 'Bangers', cursive;
+        }
+        
+        .inside-cover-left {
+            border-right: none;
+        }
+        .inside-cover-right {
+            border-left: none;
+        }
+
+        /* Pages */
+        .page {
+            width: 50%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.645, 0.045, 0.355, 1);
+            background: var(--comic-bg);
+            border: 1px solid var(--ink);
+            z-index: 1;
+            /* Paper texture */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.05"/></svg>'), linear-gradient(to right, rgba(0,0,0,0.1) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.05) 100%);
+            cursor: pointer;
+        }
+
+        .page.flipped {
+            transform: rotateY(-180deg);
+        }
+
+        .page-front, .page-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            padding: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-back {
+            transform: rotateY(180deg);
+            background: #f4ebd8;
+        }
+
+        /* Comic Elements */
+        .panel {
+            border: 4px solid var(--panel-border);
+            background: #fff;
+            position: relative;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .panel:hover {
+            transform: scale(1.02);
+            z-index: 10;
+            box-shadow: 8px 8px 0 rgba(0,0,0,0.3);
+        }
+
+        .caption {
+            background: var(--highlight);
+            border: 2px solid var(--ink);
+            padding: 8px 12px;
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-shadow: 2px 2px 0 var(--ink);
+            z-index: 5;
+        }
+
+        .speech-bubble {
+            background: #fff;
+            border: 3px solid var(--ink);
+            border-radius: 50%;
+            padding: 15px 20px;
+            position: absolute;
+            font-weight: bold;
+            font-size: 1.1rem;
+            box-shadow: 3px 3px 0 var(--ink);
+            animation: float 3s ease-in-out infinite;
+            z-index: 5;
+        }
+        
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            border-width: 15px 15px 0 0;
+            border-style: solid;
+            border-color: #fff transparent transparent transparent;
+        }
+
+        .speech-bubble::before {
+            content: '';
+            position: absolute;
+            bottom: -19px;
+            left: 48%;
+            border-width: 18px 18px 0 0;
+            border-style: solid;
+            border-color: var(--ink) transparent transparent transparent;
+            z-index: -1;
+        }
+
+        .sound-effect {
+            font-family: 'Bangers', cursive;
+            font-size: 3rem;
+            color: var(--accent-red);
+            text-shadow: 3px 3px 0 #fff, 6px 6px 0 var(--ink);
+            position: absolute;
+            transform: rotate(-15deg);
+            z-index: 6;
+            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: none;
+        }
+
+        /* Halftone background utility */
+        .halftone {
+            background: radial-gradient(circle, var(--accent-blue) 2px, transparent 2.5px);
+            background-size: 10px 10px;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+        @keyframes pop {
+            0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+            80% { transform: scale(1.2) rotate(-10deg); opacity: 1; }
+            100% { transform: scale(1) rotate(-15deg); }
+        }
+        
+        .comic-title {
+            font-family: 'Bangers', cursive;
+            font-size: 6rem;
+            text-align: center;
+            color: var(--highlight);
+            text-shadow: 4px 4px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink);
+            line-height: 1.1;
+            margin-top: 50px;
+            position: relative;
+            z-index: 10;
+            animation: pulseTitle 2s infinite alternate;
+        }
+
+        @keyframes pulseTitle {
+            from { transform: scale(1); }
+            to { transform: scale(1.02); }
+        }
+
+        /* Layout grids for panels */
+        .panel-grid-1 { display: grid; grid-template-rows: 1fr; height: 100%; gap: 15px; }
+        .panel-grid-2 { display: grid; grid-template-rows: 1fr 1fr; height: 100%; gap: 15px; }
+        .panel-grid-3 { display: grid; grid-template-rows: 1fr 1fr 1fr; height: 100%; gap: 15px; }
+        .panel-grid-custom-1 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100%; gap: 15px; }
+        .span-2 { grid-column: span 2; }
+
+        /* Cover specific styles */
+        .cover-art {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+            overflow: hidden;
+            background: #87CEEB; /* Sky blue */
+        }
+        
+        .issue-number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #fff;
+            border: 3px solid var(--ink);
+            padding: 10px;
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            transform: rotate(5deg);
+            z-index: 20;
+            box-shadow: 3px 3px 0 var(--accent-red);
+        }
+
+        .barcode {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 80px;
+            height: 60px;
+            background: repeating-linear-gradient(to right, #000, #000 2px, #fff 2px, #fff 4px, #000 4px, #000 8px, #fff 8px, #fff 10px);
+            border: 2px solid #fff;
+            z-index: 20;
+        }
+
+        .price-tag {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--highlight);
+            border: 3px solid var(--ink);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            z-index: 20;
+            box-shadow: 2px 2px 0 var(--ink);
+            transform: rotate(-15deg);
+        }
+
+        /* Intro Text overlay */
+        .intro-text {
+            font-size: 1.2rem;
+            background: rgba(255,255,255,0.95);
+            border: 2px solid var(--ink);
+            padding: 15px;
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: 65%;
+            z-index: 20;
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
+            font-weight: bold;
+        }
+
+        /* Characters & SVGs */
+        .svg-layer {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Page Navigation Instructions */
+        .nav-instruction {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-family: 'Bangers', cursive;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 0 #000;
+            animation: pulseTitle 1.5s infinite alternate;
+            z-index: 100;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Desk Environment -->
+    <svg class="desk-item coffee-mug" viewBox="0 0 100 100">
+        <path d="M20 20 h40 v50 a20 20 0 0 0 40 0 h-40 z" fill="#fff" stroke="#111" stroke-width="3"/>
+        <path d="M60 30 a15 15 0 0 1 20 0 v20 a15 15 0 0 1 -20 0" fill="none" stroke="#111" stroke-width="4"/>
+        <path d="M25 10 q10 -15 20 0 t20 0" fill="none" stroke="#ccc" stroke-width="2" class="steam">
+            <animate attributeName="d" values="M25 10 q10 -15 20 0 t20 0; M25 0 q10 -15 20 0 t20 0; M25 10 q10 -15 20 0 t20 0" dur="2s" repeatCount="indefinite"/>
+        </path>
+    </svg>
+
+    <svg class="desk-item pencil" viewBox="0 0 200 20">
+        <polygon points="0,10 20,0 20,20" fill="#f4ce42" stroke="#111" stroke-width="2"/>
+        <polygon points="0,10 8,6 8,14" fill="#333"/>
+        <rect x="20" y="0" width="150" height="20" fill="#f4ce42" stroke="#111" stroke-width="2"/>
+        <rect x="170" y="0" width="30" height="20" fill="#ff9999" stroke="#111" stroke-width="2"/>
+        <line x1="170" y1="0" x2="170" y2="20" stroke="#111" stroke-width="2"/>
+    </svg>
+
+    <div class="nav-instruction">Scroll or Click to Turn Pages</div>
+
+    <div class="comic-book" id="comicBook">
+        <!-- Inside Covers (fixed at back) -->
+        <div class="inside-cover inside-cover-left">
+            <h2 style="font-size: 3rem; color: #f1c40f;">Property of</h2>
+            <h1 style="font-size: 4rem; margin-top: 10px;">Muhammad Hassan Raza</h1>
+            <p style="font-family: 'Comic Neue', cursive; font-size: 1.5rem; margin-top: 20px;">Return if found. (Or hire me!)</p>
+            <div style="margin-top: 50px;">
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#f1c40f" stroke-width="4" stroke-dasharray="10 5"/>
+                    <text x="50" y="65" font-family="Bangers" font-size="40" fill="#f1c40f" text-anchor="middle">HR</text>
+                </svg>
+            </div>
+        </div>
+        <div class="inside-cover inside-cover-right">
+            <h2 style="font-size: 4rem; color: #e74c3c;">TO BE CONTINUED...</h2>
+            <p style="font-family: 'Comic Neue', cursive; font-size: 1.5rem; margin-top: 20px;">Thanks for reading!</p>
+            <a href="mailto:me@hassan-raza.com" style="margin-top: 40px; background: #f1c40f; color: #111; padding: 10px 20px; font-size: 2rem; text-decoration: none; border-radius: 5px; box-shadow: 3px 3px 0 #000;">Contact For Next Issue</a>
+        </div>
+        <!-- Pages added via JS -->
+    </div>
+
+    <script>
+        const pagesData = [
+            // Page 0 (Cover)
+            {
+                front: `
+                    <div class="cover-art">
+                        <svg class="svg-layer" viewBox="0 0 500 800" preserveAspectRatio="xMidYMid slice">
+                            <!-- Background City -->
+                            <rect width="100%" height="100%" fill="#87CEEB"/>
+                            <!-- Moving Clouds -->
+                            <g opacity="0.8">
+                                <path d="M50 150 Q70 120 100 150 Q130 140 150 160 Q170 180 150 200 L50 200 Q30 180 50 150" fill="#fff" stroke="#111" stroke-width="2">
+                                    <animateTransform attributeName="transform" type="translate" from="-200 0" to="600 0" dur="20s" repeatCount="indefinite"/>
+                                </path>
+                                <path d="M300 100 Q320 70 350 100 Q380 90 400 110 Q420 130 400 150 L300 150 Q280 130 300 100" fill="#fff" stroke="#111" stroke-width="2">
+                                    <animateTransform attributeName="transform" type="translate" from="-400 0" to="600 0" dur="25s" repeatCount="indefinite"/>
+                                </path>
+                            </g>
+                            
+                            <!-- Cityscape -->
+                            <path d="M0 800 L0 500 L50 500 L50 400 L100 400 L100 550 L150 550 L150 350 L250 350 L250 450 L300 450 L300 300 L400 300 L400 500 L450 500 L450 450 L500 450 L500 800 Z" fill="#2c3e50" stroke="#111" stroke-width="3"/>
+                            
+                            <!-- Windows -->
+                            <rect x="110" y="420" width="10" height="20" fill="#f1c40f"><animate attributeName="opacity" values="1;0;1" dur="3s" repeatCount="indefinite"/></rect>
+                            <rect x="170" y="380" width="15" height="15" fill="#f1c40f"/>
+                            <rect x="320" y="340" width="20" height="20" fill="#f1c40f"><animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite"/></rect>
+                            <rect x="360" y="400" width="20" height="20" fill="#f1c40f"/>
+                            
+                            <!-- Hero Silhouette -->
+                            <g transform="translate(250, 700) scale(1.5)">
+                                <!-- Cape -->
+                                <path d="M -20 0 C -40 20, -50 50, -30 80 L 30 80 C 10 50, 20 20, 20 0 Z" fill="#e74c3c" stroke="#111" stroke-width="2">
+                                    <animate attributeName="d" values="M -20 0 C -40 20, -50 50, -30 80 L 30 80 C 10 50, 20 20, 20 0 Z; M -20 0 C -30 20, -40 50, -20 80 L 40 80 C 20 50, 30 20, 20 0 Z; M -20 0 C -40 20, -50 50, -30 80 L 30 80 C 10 50, 20 20, 20 0 Z" dur="2s" repeatCount="indefinite"/>
+                                </path>
+                                <!-- Body -->
+                                <rect x="-15" y="-30" width="30" height="40" rx="5" fill="#34495e" stroke="#111" stroke-width="2"/>
+                                <!-- Head -->
+                                <circle cx="0" cy="-45" r="15" fill="#ffdbac" stroke="#111" stroke-width="2"/>
+                                <!-- Glasses -->
+                                <rect x="-10" y="-50" width="8" height="6" fill="#fff" stroke="#111" stroke-width="1"/>
+                                <rect x="2" y="-50" width="8" height="6" fill="#fff" stroke="#111" stroke-width="1"/>
+                                <line x1="-2" y1="-47" x2="2" y2="-47" stroke="#111" stroke-width="1"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="price-tag">FREE</div>
+                    <div class="issue-number">ISSUE #1</div>
+                    <h1 class="comic-title">THE<br>ADVENTURES<br>OF<br>HASSAN</h1>
+                    <div class="intro-text">Senior WordPress Engineer. Plugin Architect. Security Researcher. Product Builder. The journey begins...</div>
+                    <div class="barcode"></div>
+                `,
+                back: `
+                    <div class="panel panel-grid-1" style="height: 100%; border: none; background: #eee;">
+                        <h2 style="font-family:'Bangers'; text-align:center; margin-top:50px; font-size: 3rem; color: #999;">Advertisement</h2>
+                        <div style="text-align:center; padding: 20px;">
+                            <svg width="200" height="200" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" fill="#f1c40f" stroke="#111" stroke-width="4"/>
+                                <text x="50" y="55" font-family="Bangers" font-size="20" text-anchor="middle" fill="#111">BUY COFFEE</text>
+                                <text x="50" y="70" font-family="Comic Neue" font-size="10" text-anchor="middle" fill="#111">Fueling Devs Since 1995</text>
+                            </svg>
+                        </div>
+                    </div>
+                `
+            },
+            // Page 1
+            {
+                front: `
+                    <div class="caption">Chapter 1: The Origin</div>
+                    <div class="panel-grid-2">
+                        <div class="panel halftone">
+                            <div class="caption" style="top:auto;bottom:0;border-top:2px solid var(--ink);border-bottom:none;">Who am I?</div>
+                            <svg class="svg-layer" viewBox="0 0 400 300">
+                                <rect width="100%" height="100%" fill="none"/>
+                                <!-- Desk -->
+                                <rect x="50" y="200" width="300" height="20" fill="#8B4513" stroke="#111" stroke-width="3"/>
+                                <rect x="80" y="220" width="20" height="80" fill="#654321" stroke="#111" stroke-width="3"/>
+                                <rect x="300" y="220" width="20" height="80" fill="#654321" stroke="#111" stroke-width="3"/>
+                                
+                                <!-- Hassan -->
+                                <circle cx="200" cy="100" r="30" fill="#ffdbac" stroke="#111" stroke-width="3"/>
+                                <rect x="170" y="130" width="60" height="70" rx="10" fill="#3498db" stroke="#111" stroke-width="3"/>
+                                <!-- laptop -->
+                                <polygon points="140,200 260,200 280,220 120,220" fill="#ecf0f1" stroke="#111" stroke-width="3"/>
+                                <rect x="160" y="150" width="80" height="50" fill="#bdc3c7" stroke="#111" stroke-width="3"/>
+                                
+                                <!-- Code on screen -->
+                                <line x1="165" y1="160" x2="190" y2="160" stroke="#2ecc71" stroke-width="2"/>
+                                <line x1="165" y1="170" x2="220" y2="170" stroke="#e74c3c" stroke-width="2"/>
+                                <line x1="165" y1="180" x2="180" y2="180" stroke="#f1c40f" stroke-width="2"/>
+                                
+                                <g class="eyes">
+                                    <circle cx="190" cy="95" r="3" fill="#111"><animate attributeName="cy" values="95;95;96;95" dur="3s" repeatCount="indefinite"/></circle>
+                                    <circle cx="210" cy="95" r="3" fill="#111"><animate attributeName="cy" values="95;95;96;95" dur="3s" repeatCount="indefinite"/></circle>
+                                    <!-- Glasses -->
+                                    <rect x="180" y="90" width="16" height="10" fill="none" stroke="#111" stroke-width="2"/>
+                                    <rect x="204" y="90" width="16" height="10" fill="none" stroke="#111" stroke-width="2"/>
+                                    <line x1="196" y1="95" x2="204" y2="95" stroke="#111" stroke-width="2"/>
+                                </g>
+                            </svg>
+                            <div class="speech-bubble" style="top: 20px; left: 20px; width:150px;">I'm Muhammad Hassan Raza. I build things.</div>
+                        </div>
+                        <div class="panel">
+                            <svg class="svg-layer" viewBox="0 0 400 300">
+                                <rect width="100%" height="100%" fill="#2c3e50"/>
+                                <!-- Server Racks -->
+                                <rect x="50" y="50" width="80" height="200" fill="#34495e" stroke="#111" stroke-width="3"/>
+                                <line x1="50" y1="90" x2="130" y2="90" stroke="#111" stroke-width="3"/>
+                                <line x1="50" y1="130" x2="130" y2="130" stroke="#111" stroke-width="3"/>
+                                <circle cx="70" cy="70" r="5" fill="#2ecc71"><animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/></circle>
+                                <circle cx="90" cy="70" r="5" fill="#e74c3c"><animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/></circle>
+                                
+                                <rect x="270" y="50" width="80" height="200" fill="#34495e" stroke="#111" stroke-width="3"/>
+                                <line x1="270" y1="90" x2="350" y2="90" stroke="#111" stroke-width="3"/>
+                                <line x1="270" y1="130" x2="350" y2="130" stroke="#111" stroke-width="3"/>
+                                <circle cx="290" cy="110" r="5" fill="#f1c40f"><animate attributeName="opacity" values="1;0.5;1" dur="0.8s" repeatCount="indefinite"/></circle>
+                                
+                                <!-- Hassan in middle pointing -->
+                                <circle cx="200" cy="120" r="25" fill="#ffdbac" stroke="#111" stroke-width="3"/>
+                                <rect x="175" y="145" width="50" height="100" fill="#3498db" stroke="#111" stroke-width="3"/>
+                                <path d="M 225 155 L 260 130" stroke="#ffdbac" stroke-width="15" stroke-linecap="round"/>
+                                <path d="M 225 155 L 260 130" stroke="#111" stroke-width="19" stroke-linecap="round" stroke-opacity="0.3"/> 
+                            </svg>
+                            <div class="caption">Engineering Systems</div>
+                            <div class="speech-bubble" style="bottom: 20px; right: 20px; width: 180px;">I care about architecture, performance, and security.</div>
+                        </div>
+                    </div>
+                `,
+                back: `
+                    <div class="caption">Chapter 2: The WordPress World (2010+)</div>
+                    <div class="panel-grid-3">
+                        <div class="panel" style="background:#e8f4f8;">
+                            <svg class="svg-layer" viewBox="0 0 400 200">
+                                <!-- Building Plugins -->
+                                <path d="M 100 150 L 150 100 L 200 150 Z" fill="#34495e" stroke="#111" stroke-width="3"/>
+                                <rect x="120" y="150" width="60" height="50" fill="#95a5a6" stroke="#111" stroke-width="3"/>
+                                
+                                <path d="M 200 150 L 250 100 L 300 150 Z" fill="#2980b9" stroke="#111" stroke-width="3"/>
+                                <rect x="220" y="150" width="60" height="50" fill="#3498db" stroke="#111" stroke-width="3"/>
+                                
+                                <!-- Crane -->
+                                <rect x="320" y="50" width="10" height="150" fill="#f39c12" stroke="#111" stroke-width="2"/>
+                                <line x1="320" y1="50" x2="200" y2="50" stroke="#111" stroke-width="4"/>
+                                <line x1="200" y1="50" x2="200" y2="100" stroke="#111" stroke-width="2" stroke-dasharray="4"/>
+                                <rect x="180" y="100" width="40" height="40" fill="#2ecc71" stroke="#111" stroke-width="2"/>
+                            </svg>
+                            <div class="speech-bubble" style="top: 10px; left: 10px;">Joined InspiryThemes!</div>
+                            <div class="sound-effect" style="right: 20px; top: 50px;">BUILD!</div>
+                        </div>
+                        <div class="panel" style="background:#ffeaa7;">
+                            <svg class="svg-layer" viewBox="0 0 400 200">
+                                <!-- RealHomes Theme -->
+                                <rect x="50" y="50" width="120" height="120" fill="#fff" stroke="#111" stroke-width="3"/>
+                                <polygon points="50,50 110,10 170,50" fill="#e74c3c" stroke="#111" stroke-width="3"/>
+                                <rect x="90" y="120" width="40" height="50" fill="#8e44ad" stroke="#111" stroke-width="3"/>
+                                
+                                <!-- MedicalPress -->
+                                <rect x="230" y="50" width="120" height="120" fill="#fff" stroke="#111" stroke-width="3"/>
+                                <line x1="290" y1="70" x2="290" y2="110" stroke="#e74c3c" stroke-width="10"/>
+                                <line x1="270" y1="90" x2="310" y2="90" stroke="#e74c3c" stroke-width="10"/>
+                            </svg>
+                            <div class="caption">RealHomes & MedicalPress</div>
+                            <div class="speech-bubble" style="bottom: 10px; right: 10px;">Products trusted by thousands!</div>
+                        </div>
+                        <div class="panel" style="background:#ff7675;">
+                             <svg class="svg-layer" viewBox="0 0 400 200">
+                                <!-- RecipePress -->
+                                <path d="M 150 150 Q 200 200 250 150 L 220 50 L 180 50 Z" fill="#fff" stroke="#111" stroke-width="3"/>
+                                <path d="M 180 50 Q 200 20 220 50" fill="none" stroke="#111" stroke-width="3"/>
+                                <circle cx="200" cy="120" r="20" fill="#f1c40f"/>
+                                <!-- Steam -->
+                                <path d="M190 40 q10 -20 20 0 t20 -10" fill="none" stroke="#fff" stroke-width="4">
+                                     <animate attributeName="d" values="M190 40 q10 -20 20 0 t20 -10; M190 30 q10 -20 20 0 t20 -10; M190 40 q10 -20 20 0 t20 -10" dur="1s" repeatCount="indefinite"/>
+                                </path>
+                            </svg>
+                            <div class="caption" style="top:auto; bottom:0;">RecipePress</div>
+                            <div class="sound-effect" style="left: 20px; top: 20px; color:#fff; text-shadow:2px 2px 0 #111;">SIZZLE!</div>
+                        </div>
+                    </div>
+                `
+            },
+            // Page 2
+            {
+                front: `
+                    <div class="caption">Chapter 3: Architecture & Security</div>
+                    <div class="panel-grid-custom-1">
+                        <div class="panel span-2" style="background:#ecf0f1;">
+                            <svg class="svg-layer" viewBox="0 0 800 200">
+                                <!-- Blueprints -->
+                                <rect width="100%" height="100%" fill="#3498db"/>
+                                <!-- Grid lines -->
+                                <pattern id="blueprint-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <rect width="20" height="20" fill="none" stroke="#2980b9" stroke-width="1"/>
+                                </pattern>
+                                <rect width="100%" height="100%" fill="url(#blueprint-grid)"/>
+                                
+                                <rect x="100" y="50" width="150" height="100" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="10"/>
+                                <rect x="300" y="50" width="150" height="100" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="10"/>
+                                <rect x="500" y="50" width="150" height="100" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="10"/>
+                                <line x1="250" y1="100" x2="300" y2="100" stroke="#fff" stroke-width="4"/>
+                                <line x1="450" y1="100" x2="500" y2="100" stroke="#fff" stroke-width="4"/>
+                            </svg>
+                            <div class="speech-bubble" style="top: 20px; left: 50px;">Senior Engineering requires planning...</div>
+                            <div class="sound-effect" style="right: 50px; top: 50px; color:#f1c40f;">ARCHITECT!</div>
+                        </div>
+                        <div class="panel" style="background:#c0392b;">
+                            <svg class="svg-layer" viewBox="0 0 400 300">
+                                <!-- Hacker / Bug -->
+                                <circle cx="200" cy="150" r="50" fill="#111" stroke="#fff" stroke-width="3"/>
+                                <polygon points="170,120 190,140 170,160" fill="#e74c3c"/>
+                                <polygon points="230,120 210,140 230,160" fill="#e74c3c"/>
+                                <path d="M 170 180 Q 200 160 230 180" fill="none" stroke="#e74c3c" stroke-width="4"/>
+                                <!-- Legs -->
+                                <path d="M 150 150 L 100 120" stroke="#111" stroke-width="6"/>
+                                <path d="M 250 150 L 300 120" stroke="#111" stroke-width="6"/>
+                                <path d="M 160 190 L 120 230" stroke="#111" stroke-width="6"/>
+                                <path d="M 240 190 L 280 230" stroke="#111" stroke-width="6"/>
+                            </svg>
+                            <div class="caption">Security Research</div>
+                            <div class="sound-effect" style="bottom: 20px; left: 20px; font-size: 2rem;">BZZZ!</div>
+                        </div>
+                        <div class="panel" style="background:#27ae60;">
+                            <svg class="svg-layer" viewBox="0 0 400 300">
+                                <!-- Shield -->
+                                <path d="M 200 50 L 300 80 L 300 180 Q 200 280 100 180 L 100 80 Z" fill="#f1c40f" stroke="#111" stroke-width="4"/>
+                                <path d="M 200 50 L 300 80 L 300 180 Q 200 280 200 280 Z" fill="#f39c12"/>
+                                <!-- Checkmark -->
+                                <path d="M 150 160 L 190 200 L 250 120" fill="none" stroke="#111" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div class="speech-bubble" style="bottom: 20px; right: 20px; width: 120px;">Vulnerabilities patched!</div>
+                            <div class="sound-effect" style="top: 20px; left: 20px; color: #fff;">SECURED!</div>
+                        </div>
+                    </div>
+                `,
+                back: `
+                    <div class="caption">Chapter 4: Elevoire & The Future</div>
+                    <div class="panel-grid-2">
+                        <div class="panel halftone" style="background-color: #2980b9;">
+                            <svg class="svg-layer" viewBox="0 0 800 300">
+                                <!-- Rocket Launch -->
+                                <g transform="translate(400, 200)">
+                                    <!-- Exhaust -->
+                                    <polygon points="-20,50 20,50 0,150" fill="#e74c3c">
+                                        <animate attributeName="points" values="-20,50 20,50 0,150; -30,50 30,50 0,180; -20,50 20,50 0,150" dur="0.2s" repeatCount="indefinite"/>
+                                    </polygon>
+                                    <polygon points="-10,50 10,50 0,100" fill="#f1c40f">
+                                         <animate attributeName="points" values="-10,50 10,50 0,100; -15,50 15,50 0,120; -10,50 10,50 0,100" dur="0.1s" repeatCount="indefinite"/>
+                                    </polygon>
+                                    
+                                    <!-- Rocket Body -->
+                                    <path d="M -30 50 L 30 50 L 30 -50 C 30 -100, 0 -150, 0 -150 C 0 -150, -30 -100, -30 -50 Z" fill="#ecf0f1" stroke="#111" stroke-width="4"/>
+                                    <circle cx="0" cy="-30" r="15" fill="#3498db" stroke="#111" stroke-width="3"/>
+                                    
+                                    <!-- Fins -->
+                                    <polygon points="-30,0 -50,50 -30,50" fill="#e74c3c" stroke="#111" stroke-width="3"/>
+                                    <polygon points="30,0 50,50 30,50" fill="#e74c3c" stroke="#111" stroke-width="3"/>
+                                    
+                                    <!-- Animation -->
+                                    <animateTransform attributeName="transform" type="translate" values="400,200; 400,205; 400,200" dur="0.1s" repeatCount="indefinite"/>
+                                </g>
+                                
+                                <!-- Stars -->
+                                <circle cx="100" cy="50" r="2" fill="#fff"><animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/></circle>
+                                <circle cx="200" cy="150" r="3" fill="#fff"><animate attributeName="opacity" values="0;1;0" dur="3s" repeatCount="indefinite"/></circle>
+                                <circle cx="700" cy="80" r="2" fill="#fff"><animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/></circle>
+                            </svg>
+                            <div class="speech-bubble" style="top: 20px; left: 20px;">2026: Founding Elevoire</div>
+                            <div class="caption" style="top:auto; bottom:0;">Building product-led software businesses.</div>
+                            <div class="sound-effect" style="right: 50px; bottom: 50px; font-size:4rem; color:#fff;">LAUNCH!</div>
+                        </div>
+                        <div class="panel" style="background:#fdf5e6; display:flex; justify-content:center; align-items:center; text-align:center;">
+                            <div style="padding: 40px;">
+                                <h2 style="font-family:'Bangers'; font-size: 3rem;">Ready for the next adventure?</h2>
+                                <p style="font-size: 1.5rem; margin-top: 20px;">Let's build something exceptional.</p>
+                                <a href="mailto:me@hassan-raza.com" style="display:inline-block; margin-top: 30px; background:var(--accent-red); color:#fff; text-decoration:none; padding:15px 30px; font-family:'Bangers'; font-size: 1.5rem; border:3px solid var(--ink); border-radius: 10px; box-shadow: 4px 4px 0 var(--ink); transition: transform 0.2s;">
+                                    CONTACT ME
+                                </a>
+                                <div style="margin-top:40px; font-size:0.9rem; color:#666;">View full portfolio at hassan-raza.com</div>
+                            </div>
+                        </div>
+                    </div>
+                `
+            }
+        ];
+
+        const comicBook = document.getElementById('comicBook');
+        let currentPage = 0;
+        let isAnimating = false;
+
+        // Render Pages
+        pagesData.forEach((page, index) => {
+            const pageEl = document.createElement('div');
+            pageEl.className = 'page';
+            // Z-index: first page on top.
+            pageEl.style.zIndex = pagesData.length - index;
+
+            const frontEl = document.createElement('div');
+            frontEl.className = 'page-front';
+            frontEl.innerHTML = page.front;
+
+            const backEl = document.createElement('div');
+            backEl.className = 'page-back';
+            backEl.innerHTML = page.back;
+
+            pageEl.appendChild(frontEl);
+            pageEl.appendChild(backEl);
+
+            // Click to flip
+            pageEl.addEventListener('click', () => {
+                if(isAnimating) return;
+                
+                if (pageEl.classList.contains('flipped')) {
+                    // Flip back (only if it's the current active left page)
+                    if (index === currentPage - 1) {
+                        isAnimating = true;
+                        pageEl.style.zIndex = 100; // Keep on top during flip
+                        pageEl.classList.remove('flipped');
+                        currentPage--;
+                        setTimeout(() => {
+                            updateZIndices();
+                            isAnimating = false;
+                        }, 1000);
+                    }
+                } else {
+                    // Flip forward
+                    if (index === currentPage) {
+                        isAnimating = true;
+                        pageEl.style.zIndex = 100; // Keep on top during flip
+                        pageEl.classList.add('flipped');
+                        currentPage++;
+                        setTimeout(() => {
+                            updateZIndices();
+                            isAnimating = false;
+                        }, 1000);
+                    }
+                }
+            });
+
+            comicBook.appendChild(pageEl);
+        });
+
+        function updateZIndices() {
+            const pages = document.querySelectorAll('.page');
+            pages.forEach((page, index) => {
+                if (page.classList.contains('flipped')) {
+                    // Flipped pages go to the left side, stack order needs to reverse
+                    page.style.zIndex = index + 1;
+                } else {
+                    // Unflipped pages on the right side
+                    page.style.zIndex = pages.length - index;
+                }
+            });
+        }
+
+        // Wheel to scroll
+        window.addEventListener('wheel', (e) => {
+            if (isAnimating) return;
+            const pages = document.querySelectorAll('.page');
+            
+            if (e.deltaY > 50) {
+                // Scroll down -> next page
+                if (currentPage < pages.length) {
+                    isAnimating = true;
+                    pages[currentPage].style.zIndex = 100; // Keep on top during flip
+                    pages[currentPage].classList.add('flipped');
+                    currentPage++;
+                    setTimeout(() => {
+                        updateZIndices();
+                        isAnimating = false;
+                    }, 1000);
+                }
+            } else if (e.deltaY < -50) {
+                // Scroll up -> prev page
+                if (currentPage > 0) {
+                    isAnimating = true;
+                    currentPage--;
+                    pages[currentPage].style.zIndex = 100; // Keep on top during flip
+                    pages[currentPage].classList.remove('flipped');
+                    setTimeout(() => {
+                        updateZIndices();
+                        isAnimating = false;
+                    }, 1000);
+                }
+            }
+        });
+
+        // Add some interactive easter eggs
+        document.addEventListener('DOMContentLoaded', () => {
+            const mug = document.querySelector('.coffee-mug');
+            mug.addEventListener('mouseover', () => {
+                mug.style.transform = 'translateY(-10px) rotate(5deg)';
+            });
+            mug.addEventListener('mouseout', () => {
+                mug.style.transform = 'translateY(0) rotate(0)';
+            });
+            
+            const pencil = document.querySelector('.pencil');
+            pencil.addEventListener('click', () => {
+                pencil.style.transform = 'rotate(-30deg) translateX(20px)';
+                setTimeout(() => {
+                    pencil.style.transform = 'rotate(-15deg)';
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>

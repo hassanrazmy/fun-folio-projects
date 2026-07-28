@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HassanVille — Muhammad Hassan Raza</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2B2118;
+    --cream:#FFF6E9;
+    --coral:#FF6F59;
+    --mustard:#FFC857;
+    --teal:#2EC4B6;
+    --plum:#6A4C93;
+    --sky-top-day:#7EC8E3;
+    --sky-bot-day:#FDEBC8;
+    --sky-top-night:#0B1440;
+    --sky-bot-night:#3A2151;
+    --paper:#FFFDF7;
+    --shadow: rgba(43,33,24,0.25);
+    --text:#2B2118;
+    --text-soft:rgba(43,33,24,.85);
+  }
+  body.night{ --text:#FFF6E9; --text-soft:rgba(255,246,233,.85); }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--cream);font-family:'Quicksand',sans-serif;color:var(--ink);overflow-x:hidden;transition:color .6s ease;}
+  h1,h2,h3,.display{font-family:'Baloo 2',cursive;}
+  .wobble{filter:url(#wobble);}
+  ::selection{background:var(--mustard);}
+
+  /* ---------- SKY (fixed backdrop) ---------- */
+  #sky{
+    position:fixed; inset:0; z-index:0;
+    background:linear-gradient(to bottom, var(--sky-top-day), var(--sky-bot-day));
+    transition:background 4s ease;
+    overflow:hidden;
+  }
+  body.night #sky{ background:linear-gradient(to bottom, var(--sky-top-night), var(--sky-bot-night)); }
+  #stars{ position:absolute; inset:0; opacity:0; transition:opacity 4s ease; }
+  body.night #stars{ opacity:1; }
+  .star{ position:absolute; width:3px;height:3px;background:#fff;border-radius:50%; animation:twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle{ 0%,100%{opacity:.2;} 50%{opacity:1;} }
+
+  #sunmoon{
+    position:absolute; width:70px; height:70px; border-radius:50%;
+    top:8%; left:10%;
+    background: radial-gradient(circle at 35% 35%, #FFF3B0, var(--mustard));
+    box-shadow:0 0 40px 10px rgba(255,200,87,.6);
+    animation: arc 60s linear infinite;
+  }
+  body.night #sunmoon{
+    background: radial-gradient(circle at 35% 35%, #fdfdfd, #cfd6e6);
+    box-shadow:0 0 30px 6px rgba(255,255,255,.35);
+  }
+  @keyframes arc{
+    0%{ left:2%; top:30%; }
+    50%{ left:50%; top:4%; }
+    100%{ left:98%; top:30%; }
+  }
+
+  .cloud{ position:absolute; opacity:.9; animation:drift linear infinite; }
+  @keyframes drift{ from{transform:translateX(0);} to{transform:translateX(-120vw);} }
+
+  .bird{ position:absolute; animation:flap 1.4s ease-in-out infinite, driftbird 22s linear infinite; }
+  @keyframes flap{ 0%,100%{transform:scaleY(1);} 50%{transform:scaleY(.6);} }
+  @keyframes driftbird{ from{transform:translateX(120vw);} to{transform:translateX(-30vw);} }
+
+  .plane{ position:absolute; top:18%; animation: planefly 40s linear infinite; }
+  @keyframes planefly{ from{transform:translateX(-20vw);} to{transform:translateX(120vw);} }
+
+  .kite{ position:absolute; animation: swing 4s ease-in-out infinite; }
+  @keyframes swing{ 0%,100%{transform:rotate(-6deg);} 50%{transform:rotate(6deg);} }
+
+  /* ---------- WORLD / STREET ---------- */
+  #world{ position:relative; z-index:1; }
+  .paused *{ animation-play-state:paused !important; }
+
+  header.hero{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; position:relative; padding:20px;
+  }
+  .signboard{
+    background:var(--paper); border:4px solid var(--ink); border-radius:26px;
+    padding:26px 40px; box-shadow:8px 8px 0 var(--ink);
+    transform:rotate(-1.5deg);
+  }
+  .signboard h1{ font-size:clamp(2.4rem,7vw,4.6rem); margin:0; color:var(--coral); text-shadow:3px 3px 0 var(--ink); }
+  .signboard p{ font-size:1.1rem; margin:8px 0 0; font-weight:600; }
+  .scroll-hint{ margin-top:26px; font-weight:700; animation: bob 1.6s ease-in-out infinite; color:var(--text); transition:color .6s ease; }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(10px);} }
+
+  section{ position:relative; padding:80px 6vw 120px; }
+  .section-title{ text-align:center; font-size:clamp(1.8rem,4vw,2.8rem); margin-bottom:8px; color:var(--text); transition:color .6s ease; text-shadow:0 1px 0 rgba(255,255,255,.15); }
+  .section-sub{ text-align:center; max-width:640px; margin:0 auto 50px; font-weight:600; color:var(--text-soft); transition:color .6s ease; }
+
+  .ground{
+    position:absolute; left:0; right:0; bottom:0; height:70px;
+    background:repeating-linear-gradient(90deg, var(--teal) 0 60px, #23a396 60px 64px);
+    border-top:4px solid var(--ink);
+  }
+
+  /* ---------- CHARACTER ---------- */
+  .hassan-walk{ position:absolute; bottom:74px; width:70px; animation: walkacross 26s linear infinite; cursor:pointer; }
+  @keyframes walkacross{ from{ left:-80px; } to{ left:110%; } }
+  .hassan-walk .legs{ animation: stride .5s linear infinite; transform-origin:center top; }
+  @keyframes stride{ 0%,100%{transform:rotate(8deg);} 50%{transform:rotate(-8deg);} }
+
+  /* ---------- NPCs ---------- */
+  .npc{ position:absolute; bottom:74px; animation: walkacross linear infinite; }
+  .npc .legs{ animation: stride .45s linear infinite; }
+  .speech{ position:absolute; top:-34px; left:50%; transform:translateX(-50%); background:#fff; border:3px solid var(--ink); border-radius:10px; padding:2px 8px; font-size:.65rem; font-weight:700; white-space:nowrap; }
+
+  /* ---------- BUILDINGS ---------- */
+  .street-row{ display:flex; flex-wrap:wrap; gap:36px; justify-content:center; position:relative; z-index:2; }
+  .building{ cursor:pointer; transition: transform .25s cubic-bezier(.34,1.56,.64,1); text-align:center; width:220px; }
+  .building:hover{ transform:translateY(-10px) scale(1.04); }
+  .building svg{ width:100%; height:auto; display:block; }
+  .building .label{ margin-top:10px; font-family:'Baloo 2'; font-weight:700; font-size:1.05rem; background:var(--paper); border:3px solid var(--ink); border-radius:14px; padding:6px 10px; box-shadow:4px 4px 0 var(--ink); }
+  .building .role{ font-size:.72rem; font-weight:600; color:var(--text-soft); transition:color .6s ease; margin-top:2px; }
+  .win{ animation: glow 3.4s ease-in-out infinite; }
+  @keyframes glow{ 0%,100%{ fill-opacity:.35; } 50%{ fill-opacity:.85; } }
+  body.night .win{ fill:#FFE9A8 !important; }
+  body:not(.night) .win{ fill:#bfe9ff; }
+
+  /* ---------- SKILL SHOPS ---------- */
+  .shop{ position:relative; }
+  .shop .hoverfx{ position:absolute; top:-30px; left:50%; transform:translateX(-50%) scale(.6); opacity:0; font-size:1.6rem; transition:.25s; pointer-events:none;}
+  .shop:hover .hoverfx{ opacity:1; transform:translateX(-50%) scale(1) translateY(-8px); }
+
+  /* ---------- SUBWAY ---------- */
+  .subway-wrap{ position:relative; background:var(--paper); border:4px solid var(--ink); border-radius:24px; padding:50px 30px 30px; box-shadow:8px 8px 0 var(--ink); max-width:900px; margin:0 auto; overflow:hidden; }
+  .track{ position:relative; height:8px; background:var(--ink); border-radius:4px; margin:60px 20px 90px; }
+  .stop{ position:absolute; top:-10px; width:28px; height:28px; border-radius:50%; background:var(--mustard); border:4px solid var(--ink); transform:translateX(-50%); }
+  .stop-label{ position:absolute; top:26px; width:170px; left:50%; transform:translateX(-50%); text-align:center; }
+  .stop-label b{ display:block; font-family:'Baloo 2'; color:var(--coral); }
+  .train{ position:absolute; top:-16px; width:44px; height:22px; background:var(--teal); border:3px solid var(--ink); border-radius:8px; animation: chug 9s ease-in-out infinite; }
+  .train:after{ content:''; position:absolute; right:-6px; top:4px; width:6px;height:6px;background:var(--ink); border-radius:50%; }
+  @keyframes chug{
+    0%{ left:2%; } 30%{ left:48%; } 55%{ left:48%; } 85%{ left:96%; } 100%{ left:96%; }
+  }
+
+  /* ---------- MODAL ---------- */
+  #overlay{ position:fixed; inset:0; background:rgba(43,33,24,.55); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  #overlay.show{ display:flex; }
+  #modal{ background:var(--paper); border:5px solid var(--ink); border-radius:24px; max-width:480px; width:100%; padding:28px; box-shadow:10px 10px 0 var(--ink); position:relative; transform:scale(.8) rotate(-2deg); animation: pop .3s cubic-bezier(.34,1.56,.64,1) forwards; }
+  @keyframes pop{ to{ transform:scale(1) rotate(0);} }
+  #modal h3{ margin:0 0 4px; color:var(--coral); font-size:1.6rem; }
+  #modal .m-role{ font-weight:700; opacity:.8; margin-bottom:10px; }
+  #modal .m-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+  #modal .m-tags span{ background:var(--mustard); border:2px solid var(--ink); border-radius:8px; padding:2px 8px; font-size:.75rem; font-weight:700; }
+  #closeModal{ position:absolute; top:10px; right:14px; font-size:1.4rem; background:none; border:none; cursor:pointer; font-weight:800; }
+
+  /* ---------- SIGNS ---------- */
+  .sign{ position:absolute; background:var(--paper); border:3px solid var(--ink); border-radius:8px; padding:4px 10px; font-size:.7rem; font-weight:700; box-shadow:3px 3px 0 var(--ink); transform:rotate(-3deg); }
+
+  /* ---------- POST OFFICE / CONTACT ---------- */
+  .postoffice{ max-width:520px; margin:0 auto; background:var(--paper); border:4px solid var(--ink); border-radius:24px; padding:30px; box-shadow:8px 8px 0 var(--ink); text-align:center; position:relative; }
+  .postoffice input, .postoffice textarea{ width:100%; font-family:'Quicksand'; font-weight:600; border:3px solid var(--ink); border-radius:12px; padding:10px 12px; margin-bottom:12px; font-size:.95rem; }
+  .postoffice button{ font-family:'Baloo 2'; font-size:1.05rem; background:var(--coral); color:#fff; border:3px solid var(--ink); border-radius:14px; padding:10px 26px; cursor:pointer; box-shadow:4px 4px 0 var(--ink); transition:.15s; }
+  .postoffice button:hover{ transform:translateY(-2px); }
+  #envelope{ position:fixed; width:44px; font-size:1.8rem; z-index:60; display:none; pointer-events:none; }
+  #envelope.fly{ display:block; animation: flyaway 1.8s ease-in forwards; }
+  @keyframes flyaway{ from{ transform:translate(0,0) scale(1) rotate(0);} to{ transform:translate(var(--dx,60vw), var(--dy,-40vh)) scale(.3) rotate(360deg); opacity:0; } }
+
+  /* ---------- DOCK NAV ---------- */
+  #dock{ position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:40; display:flex; gap:8px; background:var(--paper); border:3px solid var(--ink); border-radius:20px; padding:8px 12px; box-shadow:5px 5px 0 var(--ink); }
+  #dock button{ background:none; border:none; font-size:1.3rem; cursor:pointer; transition:.15s; }
+  #dock button:hover{ transform:translateY(-6px) scale(1.2); }
+
+  #toast{ position:fixed; top:20px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 20px; border-radius:14px; font-weight:700; z-index:70; opacity:0; transition:.3s; pointer-events:none; }
+  #toast.show{ opacity:1; top:30px; }
+
+  footer{ text-align:center; padding:40px; font-weight:700; color:var(--text-soft); transition:color .6s ease; position:relative; z-index:2; }
+
+  @media(max-width:640px){ .building{ width:150px; } .signboard{padding:18px 22px;} }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0">
+  <filter id="wobble">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" result="noise" seed="7"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3"/>
+  </filter>
+</svg>
+
+<div id="sky">
+  <div id="stars"></div>
+  <div id="sunmoon"></div>
+</div>
+
+<div id="toast"></div>
+<div id="envelope">✉️</div>
+
+<div id="world">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="signboard wobble">
+      <h1>HassanVille</h1>
+      <p>Welcome to the town built out of 15+ years of WordPress engineering.<br>Scroll down the street to meet the neighborhood.</p>
+    </div>
+    <div class="scroll-hint">↓ start walking ↓</div>
+  </header>
+
+  <!-- MY OFFICE / ABOUT -->
+  <section id="office">
+    <h2 class="section-title">My Office</h2>
+    <p class="section-sub">Muhammad Hassan Raza — Senior WordPress Engineer, Plugin Architect, Security Researcher &amp; Product Builder, working from Pakistan, remote worldwide.</p>
+    <div class="street-row">
+      <div class="building" onclick="openModal('office')">
+        <svg viewBox="0 0 200 220" class="wobble">
+          <rect x="20" y="60" width="160" height="150" rx="10" fill="#F4EBDD" stroke="#2B2118" stroke-width="5"/>
+          <rect x="20" y="60" width="160" height="18" fill="#6A4C93" stroke="#2B2118" stroke-width="5"/>
+          <rect x="45" y="95" width="35" height="30" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="120" y="95" width="35" height="30" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="82" y="150" width="36" height="55" fill="#FF6F59" stroke="#2B2118" stroke-width="5"/>
+          <circle cx="107" cy="178" r="3" fill="#2B2118"/>
+          <polygon points="10,60 100,15 190,60" fill="#FFC857" stroke="#2B2118" stroke-width="5" stroke-linejoin="round"/>
+        </svg>
+        <div class="label">The Office</div>
+        <div class="role">15+ yrs · 50+ products</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAREER SUBWAY -->
+  <section id="career">
+    <h2 class="section-title">Career Line</h2>
+    <p class="section-sub">Every stop on the map is a real chapter — hop the train and ride the timeline.</p>
+    <div class="subway-wrap">
+      <div class="track">
+        <div class="stop" style="left:4%"></div>
+        <div class="stop-label" style="left:4%"><b>2010</b>960Development<br>Co-Founder, Senior PM</div>
+        <div class="stop" style="left:50%"></div>
+        <div class="stop-label" style="left:50%"><b>2010 — Present</b>InspiryThemes<br>Senior Dev → Products Lead</div>
+        <div class="stop" style="left:96%"></div>
+        <div class="stop-label" style="left:96%"><b>2026 — Present</b>Elevoire<br>Founder, Products Builder</div>
+        <div class="train wobble"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO BUILDINGS -->
+  <section id="portfolio">
+    <h2 class="section-title">Downtown Portfolio</h2>
+    <p class="section-sub">Products aren't cards here — they're buildings you can walk into.</p>
+    <div class="street-row" style="position:relative;">
+
+      <div class="building" onclick="openModal('realhomes')">
+        <svg viewBox="0 0 200 220" class="wobble">
+          <rect x="15" y="70" width="170" height="140" fill="#FF6F59" stroke="#2B2118" stroke-width="5"/>
+          <rect x="15" y="70" width="170" height="16" fill="#2B2118"/>
+          <rect x="30" y="100" width="30" height="26" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="85" y="100" width="30" height="26" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="140" y="100" width="30" height="26" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="82" y="150" width="36" height="60" fill="#FFC857" stroke="#2B2118" stroke-width="5"/>
+          <path d="M15 70 L100 25 L185 70" fill="none" stroke="#2B2118" stroke-width="6" stroke-linejoin="round"/>
+          <text x="100" y="55" text-anchor="middle" font-family="Baloo 2" font-size="14" fill="#2B2118">🏠</text>
+        </svg>
+        <div class="label">RealHomes Realty</div>
+        <div class="role">Sr. WordPress Dev · 11+ yrs</div>
+      </div>
+
+      <div class="building" onclick="openModal('medicalpress')">
+        <svg viewBox="0 0 200 220" class="wobble">
+          <rect x="20" y="55" width="160" height="155" fill="#FFF6E9" stroke="#2B2118" stroke-width="5"/>
+          <rect x="20" y="55" width="160" height="16" fill="#2EC4B6"/>
+          <rect x="35" y="85" width="24" height="24" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="88" y="85" width="24" height="24" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="141" y="85" width="24" height="24" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="35" y="130" width="24" height="24" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="141" y="130" width="24" height="24" rx="4" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="82" y="160" width="36" height="50" fill="#6A4C93" stroke="#2B2118" stroke-width="5"/>
+          <rect x="93" y="95" width="14" height="36" fill="#FF6F59" stroke="#2B2118" stroke-width="3"/>
+          <rect x="82" y="106" width="36" height="14" fill="#FF6F59" stroke="#2B2118" stroke-width="3"/>
+        </svg>
+        <div class="label">MedicalPress</div>
+        <div class="role">Product Lead · 12 yrs</div>
+      </div>
+
+      <div class="building" onclick="openModal('recipepress')">
+        <svg viewBox="0 0 200 220" class="wobble">
+          <rect x="20" y="70" width="160" height="140" fill="#FFC857" stroke="#2B2118" stroke-width="5"/>
+          <path d="M15 70 Q100 30 185 70" fill="#FF6F59" stroke="#2B2118" stroke-width="5"/>
+          <rect x="35" y="100" width="130" height="30" rx="6" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="82" y="150" width="36" height="60" fill="#2EC4B6" stroke="#2B2118" stroke-width="5"/>
+          <text x="100" y="122" text-anchor="middle" font-size="18">☕🍳</text>
+        </svg>
+        <div class="label">RecipePress Café</div>
+        <div class="role">Product Lead · 10 yrs</div>
+      </div>
+
+      <div class="building" onclick="openModal('elevoire')">
+        <svg viewBox="0 0 200 260" class="wobble">
+          <rect x="55" y="30" width="90" height="200" fill="#2B2118" stroke="#2B2118" stroke-width="5"/>
+          <rect x="55" y="30" width="90" height="200" fill="#3a2e22"/>
+          <rect x="65" y="45" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="91" y="45" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="117" y="45" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="65" y="75" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="91" y="75" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="117" y="75" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="65" y="105" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="91" y="105" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="117" y="105" width="18" height="18" rx="3" class="win" fill="#bfe9ff" stroke="#FFC857" stroke-width="3"/>
+          <rect x="82" y="180" width="36" height="50" fill="#FF6F59" stroke="#2B2118" stroke-width="5"/>
+          <polygon points="55,30 100,5 145,30" fill="#FFC857" stroke="#2B2118" stroke-width="5"/>
+          <circle cx="100" cy="0" r="5" fill="#FF6F59" stroke="#2B2118" stroke-width="3"/>
+        </svg>
+        <div class="label">Elevoire HQ</div>
+        <div class="role">Founder · 2026 — Present</div>
+      </div>
+
+      <!-- funny signs scattered -->
+      <div class="sign" style="position:absolute; bottom:-40px; left:6%;">🗑️ Legacy Code</div>
+      <div class="sign" style="position:absolute; bottom:-60px; right:10%;">Ctrl + 🍕</div>
+    </div>
+  </section>
+
+  <!-- SKILLS DISTRICT -->
+  <section id="skills">
+    <h2 class="section-title">Skills District</h2>
+    <p class="section-sub">Each shopfront is a slice of the toolbox — hover to see what's cooking.</p>
+    <div class="street-row">
+      <div class="building shop" onclick="openModal('phpshop')">
+        <div class="hoverfx">🐘</div>
+        <svg viewBox="0 0 200 200" class="wobble">
+          <rect x="25" y="60" width="150" height="130" fill="#6A4C93" stroke="#2B2118" stroke-width="5"/>
+          <rect x="25" y="60" width="150" height="16" fill="#FFC857"/>
+          <rect x="45" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="120" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="85" y="140" width="30" height="50" fill="#FF6F59" stroke="#2B2118" stroke-width="4"/>
+        </svg>
+        <div class="label">PHP &amp; WP Workshop</div>
+        <div class="role">PHP8 · Core · WooCommerce · REST · WP-CLI</div>
+      </div>
+      <div class="building shop" onclick="openModal('jslab')">
+        <div class="hoverfx">⚡</div>
+        <svg viewBox="0 0 200 200" class="wobble">
+          <rect x="25" y="60" width="150" height="130" fill="#FFC857" stroke="#2B2118" stroke-width="5"/>
+          <rect x="25" y="60" width="150" height="16" fill="#2B2118"/>
+          <rect x="45" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="120" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="85" y="140" width="30" height="50" fill="#2EC4B6" stroke="#2B2118" stroke-width="4"/>
+        </svg>
+        <div class="label">JavaScript Lab</div>
+        <div class="role">JS · React · Next.js · CSS3 · Tailwind</div>
+      </div>
+      <div class="building shop" onclick="openModal('serverdepot')">
+        <div class="hoverfx">🗄️</div>
+        <svg viewBox="0 0 200 200" class="wobble">
+          <rect x="25" y="60" width="150" height="130" fill="#2EC4B6" stroke="#2B2118" stroke-width="5"/>
+          <rect x="25" y="60" width="150" height="16" fill="#2B2118"/>
+          <rect x="45" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="120" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="85" y="140" width="30" height="50" fill="#6A4C93" stroke="#2B2118" stroke-width="4"/>
+        </svg>
+        <div class="label">Server Depot</div>
+        <div class="role">MySQL · Redis · Linux · Nginx · Docker</div>
+      </div>
+      <div class="building shop" onclick="openModal('secoffice')">
+        <div class="hoverfx">🐛🥅</div>
+        <svg viewBox="0 0 200 200" class="wobble">
+          <rect x="25" y="60" width="150" height="130" fill="#FF6F59" stroke="#2B2118" stroke-width="5"/>
+          <rect x="25" y="60" width="150" height="16" fill="#2B2118"/>
+          <rect x="45" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="120" y="90" width="35" height="35" class="win" fill="#bfe9ff" stroke="#2B2118" stroke-width="4"/>
+          <rect x="85" y="140" width="30" height="50" fill="#FFC857" stroke="#2B2118" stroke-width="4"/>
+        </svg>
+        <div class="label">Security Office</div>
+        <div class="role">Audits · Perf Tuning · CI/CD · Strategy</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT: POST OFFICE -->
+  <section id="contact">
+    <h2 class="section-title">Post Office</h2>
+    <p class="section-sub">Drop a letter in the mailbox — a bird will fly it straight to my desk.</p>
+    <div class="postoffice">
+      <div style="font-size:2.6rem; margin-bottom:6px;">📮</div>
+      <input id="pname" placeholder="Your name">
+      <input id="pemail" placeholder="Your email">
+      <textarea id="pmsg" rows="3" placeholder="What are we building?"></textarea>
+      <button onclick="mailIt()">Send the letter 🐦</button>
+      <p style="margin-top:16px; font-weight:700; font-size:.85rem;">
+        or reach me directly — <a href="mailto:me@hassan-raza.com">me@hassan-raza.com</a> ·
+        <a href="https://github.com/hassanrazmy" target="_blank">GitHub</a> ·
+        <a href="https://pk.linkedin.com/in/muhammad-hassan-raza-67838716a" target="_blank">LinkedIn</a> ·
+        <a href="https://x.com/hassanazmy" target="_blank">X</a>
+      </p>
+    </div>
+  </section>
+
+  <footer>{ HR } — Building HassanVille from heart. Type "sudo", "coffee" or "wordpress" for a surprise.</footer>
+</div>
+
+<div id="dock">
+  <button onclick="jump('office')" title="My Office">🏠</button>
+  <button onclick="jump('career')" title="Career Line">🚇</button>
+  <button onclick="jump('portfolio')" title="Portfolio">🏙️</button>
+  <button onclick="jump('skills')" title="Skills">🛠️</button>
+  <button onclick="jump('contact')" title="Contact">📮</button>
+  <button onclick="toggleDayNight()" title="Toggle day/night">🌗</button>
+</div>
+
+<div id="overlay" onclick="if(event.target===this) closeModal()">
+  <div id="modal">
+    <button id="closeModal" onclick="closeModal()">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ---------------- DATA ----------------
+const DATA = {
+  office: { title:"The Office", role:"Muhammad Hassan Raza — Senior WordPress Engineer, Plugin Architect, Security Researcher, Product Builder", desc:"Pakistan, remote worldwide. 15+ years experience, 50+ products built, 200+ sites secured. Works best where the code carries real business weight — architecture, WooCommerce workflows, performance ceilings and security-sensitive features.", tags:["Architecture","Security","Performance","Product Strategy"] },
+  realhomes: { title:"RealHomes Realty", role:"Senior WordPress Developer · 11+ years", desc:"One of the most established premium real-estate WordPress themes on the market, trusted by thousands of agents and agencies worldwide.", tags:["WordPress","Real Estate","Elementor Widgets","Search Systems"] },
+  medicalpress: { title:"MedicalPress Hospital", role:"Product Lead · 12 years", desc:"A premium WordPress theme built for hospitals, clinics, doctors, dentists and healthcare providers — led as a core contributor across its life.", tags:["WordPress","Healthcare","Product Lead"] },
+  recipepress: { title:"RecipePress Café", role:"Product Lead · 10 years", desc:"A premium WordPress theme serving hotels, restaurants, cafés and personal recipe blogs.", tags:["WordPress","Hospitality","Product Lead"] },
+  elevoire: { title:"Elevoire HQ", role:"Founder, Products Builder · 2026 — Present", desc:"Building product-led software businesses across WordPress, SaaS, FinTech and cybersecurity — setting product vision, architecture and technical strategy, and running the Security & Maintenance division.", tags:["Founder","SaaS","FinTech","Security"] },
+  phpshop: { title:"PHP & WordPress Workshop", role:"Core toolkit", desc:"PHP 8+, WordPress Core, custom plugin architecture, WooCommerce, REST API and WP-CLI — the daily-driver stack behind fifteen years of releases.", tags:["PHP 8+","WordPress Core","WooCommerce","REST API","WP-CLI"] },
+  jslab: { title:"JavaScript Lab", role:"Frontend toolkit", desc:"JavaScript, React, Next.js, HTML5, CSS3 and Tailwind CSS — for the parts of the product that live in the browser.", tags:["JavaScript","React","Next.js","Tailwind"] },
+  serverdepot: { title:"Server Depot", role:"Data & infrastructure", desc:"MySQL, MariaDB, Redis, Linux, Nginx and Docker — keeping products fast and reliable under real traffic.", tags:["MySQL","Redis","Linux","Nginx","Docker"] },
+  secoffice: { title:"Security Office", role:"Practice", desc:"Security audits, performance tuning, code review, CI/CD and technical leadership — the discipline that decides whether a platform ages gracefully.", tags:["Security Audits","Performance","Code Review","CI/CD"] },
+};
+
+function openModal(key){
+  const d = DATA[key]; if(!d) return;
+  document.getElementById('modalBody').innerHTML = `
+    <h3>${d.title}</h3>
+    <div class="m-role">${d.role}</div>
+    <p>${d.desc}</p>
+    <div class="m-tags">${d.tags.map(t=>`<span>${t}</span>`).join('')}</div>
+  `;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+
+function jump(id){ document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'}); }
+
+// ---------------- DAY / NIGHT ----------------
+let auto = true;
+function toggleDayNight(){ auto=false; document.body.classList.toggle('night'); }
+setInterval(()=>{ if(auto) document.body.classList.toggle('night'); }, 45000);
+
+// ---------------- BACKGROUND SCENERY ----------------
+function makeCloud(top, size, dur, delay){
+  const c = document.createElement('div');
+  c.className='cloud';
+  c.style.top = top+'%'; c.style.left='100%';
+  c.style.animationDuration = dur+'s'; c.style.animationDelay = delay+'s';
+  c.innerHTML = `<svg width="${size}" height="${size*0.5}" viewBox="0 0 100 50"><ellipse cx="30" cy="30" rx="28" ry="18" fill="#fff"/><ellipse cx="60" cy="22" rx="22" ry="16" fill="#fff"/><ellipse cx="80" cy="32" rx="18" ry="14" fill="#fff"/></svg>`;
+  document.getElementById('sky').appendChild(c);
+}
+for(let i=0;i<6;i++) makeCloud(5+i*12, 90+Math.random()*60, 50+Math.random()*30, -i*8);
+
+function makeBird(top, dur, delay){
+  const b=document.createElement('div');
+  b.className='bird'; b.style.top=top+'%'; b.style.animationDuration=dur+'s'; b.style.animationDelay=delay+'s';
+  b.innerHTML = '🐦';
+  b.style.fontSize='20px';
+  document.getElementById('sky').appendChild(b);
+}
+for(let i=0;i<4;i++) makeBird(15+i*8, 18+Math.random()*10, -i*5);
+
+const plane = document.createElement('div');
+plane.className='plane'; plane.innerHTML='✈️ <span style="font-size:.7rem;background:#fff;border:2px solid #2B2118;border-radius:6px;padding:1px 6px;">HassanVille</span>';
+plane.style.fontSize='22px';
+document.getElementById('sky').appendChild(plane);
+
+for(let i=0;i<80;i++){
+  const s=document.createElement('div'); s.className='star';
+  s.style.left=Math.random()*100+'%'; s.style.top=Math.random()*70+'%';
+  s.style.animationDelay=Math.random()*3+'s';
+  document.getElementById('stars').appendChild(s);
+}
+
+// ---------------- WALKING CHARACTERS ----------------
+function svgPerson(headColor, bodyColor){
+  return `<svg viewBox="0 0 60 90" width="60"><circle cx="30" cy="18" r="14" fill="${headColor}" stroke="#2B2118" stroke-width="4"/>
+  <rect x="16" y="32" width="28" height="34" rx="8" fill="${bodyColor}" stroke="#2B2118" stroke-width="4"/>
+  <g class="legs"><rect x="18" y="64" width="8" height="20" fill="#2B2118"/><rect x="34" y="64" width="8" height="20" fill="#2B2118"/></g></svg>`;
+}
+function addNPC(label, headColor, bodyColor, bottomSection, dur, delay){
+  const el = document.createElement('div');
+  el.className='npc'; el.style.animationDuration=dur+'s'; el.style.animationDelay=delay+'s';
+  el.innerHTML = svgPerson(headColor, bodyColor) + `<div class="speech">${label}</div>`;
+  bottomSection.appendChild(el);
+}
+document.querySelectorAll('section').forEach((sec,i)=>{
+  sec.style.position='relative';
+});
+const officeSec = document.getElementById('portfolio');
+addNPC('Move it 2px left', '#FFD9B3', '#6A4C93', officeSec, 24, 2);
+addNPC('Ctrl+S… Ctrl+S…', '#F2C79A', '#2EC4B6', officeSec, 30, 10);
+
+// Hassan main character
+const hassan = document.createElement('div');
+hassan.className='hassan-walk';
+hassan.innerHTML = svgPerson('#F2C79A', '#FF6F59');
+hassan.title = 'Wave hello!';
+hassan.onclick = ()=> showToast("👋 Hey, I'm Hassan — thanks for exploring HassanVille!");
+document.getElementById('office').appendChild(hassan);
+
+// ---------------- CONTACT / MAIL ----------------
+function mailIt(){
+  const name = document.getElementById('pname').value.trim();
+  const btn = event.target;
+  const rect = btn.getBoundingClientRect();
+  const env = document.getElementById('envelope');
+  env.style.left = rect.left+'px'; env.style.top = rect.top+'px';
+  env.style.setProperty('--dx', (window.innerWidth*0.3)+'px');
+  env.style.setProperty('--dy', (-window.innerHeight*0.6)+'px');
+  env.classList.remove('fly'); void env.offsetWidth; env.classList.add('fly');
+  setTimeout(()=>{
+    showToast(name ? `📬 Thanks ${name} — the bird delivered your letter!` : "📬 The bird delivered your letter!");
+  }, 1700);
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+// ---------------- EASTER EGGS ----------------
+let typed='';
+window.addEventListener('keydown', (e)=>{
+  if(e.key.length>1) return;
+  typed = (typed + e.key).slice(-10).toLowerCase();
+  if(typed.endsWith('sudo')){ showToast('🔓 sudo granted: you found the developer room.'); }
+  if(typed.endsWith('coffee')){ rainBeans(); showToast('☕ Coffee rain activated!'); }
+  if(typed.endsWith('wordpress')){ showToast('🎉 The plugin buildings are celebrating!'); document.querySelectorAll('#portfolio .building').forEach(b=>{ b.style.transform='translateY(-12px) rotate(-3deg)'; setTimeout(()=>b.style.transform='',600); }); }
+});
+function rainBeans(){
+  for(let i=0;i<25;i++){
+    const b=document.createElement('div');
+    b.textContent='☕'; b.style.position='fixed'; b.style.top='-30px';
+    b.style.left=Math.random()*100+'vw'; b.style.fontSize='18px'; b.style.zIndex=80;
+    b.style.transition='top 2.2s linear, transform 2.2s linear';
+    document.body.appendChild(b);
+    requestAnimationFrame(()=>{ b.style.top='105vh'; b.style.transform='rotate(360deg)'; });
+    setTimeout(()=>b.remove(), 2300);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hassan Raza - CLI Folio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="crt-overlay">
+  <div class="app-container">
+    <div class="terminal-window">
+      <!-- Title bar -->
+      <div class="title-bar">
+        <div class="title-dot dot-red"></div>
+        <div class="title-dot dot-yellow"></div>
+        <div class="title-dot dot-green"></div>
+        <div class="title-text">hassan@hassan-raza.com: ~ — zsh</div>
+      </div>
+
+      <!-- Nav bar -->
+      <nav class="nav-bar">
+        <span class="nav-hint">click or type:</span>
+        <button class="nav-btn">about</button>
+        <button class="nav-btn">skills</button>
+        <button class="nav-btn">projects</button>
+        <button class="nav-btn">blog</button>
+        <button class="nav-btn">experience</button>
+        <button class="nav-btn">contact</button>
+        <button class="nav-btn">help</button>
+        <button class="nav-btn clear-btn">clear</button>
+      </nav>
+
+      <!-- Terminal body -->
+      <div class="terminal-body" id="terminal-body">
+        <div class="boot-banner">
+          <pre> _   _    _    ____ ____    _    _   _ 
+| | | |  / \  / ___/ ___|  / \  | \ | |
+| |_| | / _ \ \___ \___ \ / _ \ |  \| |
+|  _  |/ ___ \ ___) |__) / ___ \| |\  |
+|_| |_/_/   \_\____/____/_/   \_\_| \_|</pre>
+          <div style="display:flex;flex-direction:column;gap:0.25rem;">
+            <p><span class="text-green">●</span> Full-Stack &amp; WordPress Developer</p>
+            <p class="text-muted">I build fast, accessible web experiences — from custom WordPress themes to full-stack apps.</p>
+          </div>
+          <p class="text-muted" style="margin-top:0.25rem;">
+            Type <span class="text-yellow">help</span> to see available commands, or try <span class="text-yellow">about</span>.
+          </p>
+        </div>
+
+        <div class="history-container" id="history-container"></div>
+
+        <div class="input-container">
+          <div class="prompt-line">
+            <span class="prompt-text green">hassan@hassan-raza.com</span>
+            <span class="text-muted">:</span>
+            <span class="prompt-text blue">~</span>
+            <span class="text-muted">$ </span>
+          </div>
+          <div style="position:relative;flex:1;display:flex;align-items:center;">
+            <input type="text" id="cmd-input" class="terminal-input" autocomplete="off" spellcheck="false" autofocus>
+            <span class="terminal-cursor"></span>
+          </div>
+        </div>
+
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+    </div>
+
+    <p class="footer-text">Hassan Raza · type <span class="text-primary">help</span> to get started</p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

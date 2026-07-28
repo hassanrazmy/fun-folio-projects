@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hassan — Software Manufacturing Facility</title>
+<style>
+  :root{
+    --bg:#0a0c10;
+    --bg2:#0e1116;
+    --panel:#14171d;
+    --panel-2:#1b1f27;
+    --steel-hi:#3d434d;
+    --steel-lo:#1c1f24;
+    --line:#2a2f38;
+    --led:#3fd0ff;
+    --led-dim:#134a5c;
+    --white-ind:#eef2f6;
+    --amber:#ffb347;
+    --red:#ff4d5e;
+    --text:#c9d1db;
+    --text-dim:#7d8794;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", "Inter", system-ui, sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    overflow-x:hidden;
+    position:relative;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  /* ============ MECHANICAL WALL BACKGROUND ============ */
+  #wall{
+    position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(1200px 800px at 20% 0%, #10141b 0%, var(--bg) 60%),
+      linear-gradient(180deg, var(--bg2), var(--bg));
+    overflow:hidden;
+  }
+  #wall svg{ position:absolute; opacity:0.35; }
+  .wall-grid{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size:48px 48px;
+  }
+  .vignette{
+    position:fixed; inset:0; z-index:1; pointer-events:none;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+  }
+  .grain-noise{
+    position:fixed; inset:0; z-index:2; pointer-events:none; opacity:0.035; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  main{ position:relative; z-index:5; }
+
+  /* gears */
+  .gear{ transform-origin:center; will-change:transform; }
+  .spin-cw{ animation:spin 12s linear infinite; }
+  .spin-ccw{ animation:spinccw 9s linear infinite; }
+  .spin-slow{ animation:spin 40s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  @keyframes spinccw{ to{ transform:rotate(-360deg);} }
+
+  /* ============ NAV ============ */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px;
+    backdrop-filter:blur(10px);
+    background:linear-gradient(180deg, rgba(10,12,16,0.75), rgba(10,12,16,0));
+  }
+  .brand{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:13px; letter-spacing:0.12em; color:var(--white-ind); }
+  .brand .dot{ width:8px; height:8px; border-radius:50%; background:var(--led); box-shadow:0 0 8px var(--led); animation:blink 2.4s ease-in-out infinite; }
+  @keyframes blink{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  nav a{ color:var(--text-dim); text-decoration:none; font-family:var(--mono); font-size:11px; letter-spacing:0.14em; margin-left:26px; text-transform:uppercase; transition:color 0.25s; }
+  nav a:hover{ color:var(--led); }
+
+  section{ position:relative; padding:140px 6vw 100px; max-width:1280px; margin:0 auto; }
+
+  .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:0.28em; color:var(--led); text-transform:uppercase; display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .eyebrow::before{ content:""; width:22px; height:1px; background:var(--led); box-shadow:0 0 6px var(--led); }
+
+  h1,h2,h3{ font-family:var(--sans); font-weight:700; letter-spacing:-0.01em; color:var(--white-ind); }
+
+  /* panel / readout chrome */
+  .plate{
+    background:linear-gradient(160deg, var(--panel-2), var(--panel));
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 20px 40px rgba(0,0,0,0.35);
+  }
+  .rivets{ position:absolute; width:6px; height:6px; border-radius:50%; background:#0006; box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), 0 1px 0 rgba(255,255,255,0.03); }
+
+  /* ============ HERO / REACTOR ============ */
+  #hero{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding-top:120px; }
+  .status-strip{ font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:0.18em; display:flex; gap:22px; margin-bottom:26px; flex-wrap:wrap; justify-content:center;}
+  .status-strip span{ display:flex; align-items:center; gap:6px; }
+  .status-strip .led{ width:6px; height:6px; border-radius:50%; background:var(--led); box-shadow:0 0 6px var(--led); }
+
+  #reactor-wrap{ position:relative; margin:20px 0 30px; }
+  #reactor-wrap .tooltip{ }
+
+  .hero-title{ font-size:clamp(32px,5vw,58px); line-height:1.05; margin-top:10px; }
+  .hero-title .accent{ color:var(--led); }
+  .hero-sub{ font-family:var(--mono); font-size:14px; color:var(--text-dim); margin-top:14px; letter-spacing:0.02em; }
+  .scroll-cue{ margin-top:56px; font-family:var(--mono); font-size:10px; letter-spacing:0.2em; color:var(--text-dim); display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .scroll-cue .rail{ width:1px; height:38px; background:linear-gradient(var(--led), transparent); position:relative; overflow:hidden; }
+  .scroll-cue .rail::after{ content:""; position:absolute; top:-20px; left:0; width:1px; height:20px; background:var(--white-ind); animation:drip 2.2s linear infinite; }
+  @keyframes drip{ to{ top:58px; } }
+
+  /* tooltip */
+  .tooltip{
+    position:fixed; z-index:200; pointer-events:none;
+    font-family:var(--mono); font-size:11px; color:var(--white-ind);
+    background:rgba(14,17,22,0.95); border:1px solid var(--line);
+    padding:8px 12px; border-radius:6px; letter-spacing:0.06em;
+    opacity:0; transform:translate(-50%,-10px); transition:opacity 0.15s, transform 0.15s;
+    box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    white-space:nowrap;
+  }
+  .tooltip.show{ opacity:1; transform:translate(-50%,-16px); }
+  .tooltip .k{ color:var(--text-dim); margin-right:6px;}
+  .tooltip .v{ color:var(--led); }
+
+  .hoverable{ cursor:crosshair; }
+
+  /* ============ PORTRAIT PAINTING STATION ============ */
+  #portrait{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .portrait-rig{ position:relative; width:340px; max-width:80vw; margin:30px auto 10px; }
+  .portrait-frame{
+    position:relative; width:100%; aspect-ratio:3/4; border-radius:10px; overflow:hidden;
+    border:1px solid var(--line);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 30px 60px rgba(0,0,0,0.5);
+    background:#0b0d11;
+  }
+  .portrait-frame img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  }
+  .portrait-gray{ filter:grayscale(1) contrast(1.05) brightness(0.92); }
+  .portrait-color{
+    clip-path:inset(0 100% 0 0);
+    animation:paintReveal 7s ease-in-out infinite;
+    filter:saturate(1.08) contrast(1.03);
+  }
+  @keyframes paintReveal{
+    0%{ clip-path:inset(0 100% 0 0); }
+    45%{ clip-path:inset(0 0% 0 0); }
+    58%{ clip-path:inset(0 0% 0 0); }
+    100%{ clip-path:inset(0 100% 0 0); }
+  }
+  .paint-edge{
+    position:absolute; top:0; bottom:0; width:5px;
+    background:linear-gradient(180deg, #3fd0ff, #ff9d3f 55%, #3fd0ff);
+    box-shadow:0 0 14px rgba(63,208,255,0.7);
+    animation:edgeMove 7s ease-in-out infinite;
+    opacity:0.9;
+  }
+  @keyframes edgeMove{
+    0%{ left:0%; }
+    45%{ left:100%; }
+    58%{ left:100%; }
+    100%{ left:0%; }
+  }
+  .portrait-scanlines{
+    position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 4px);
+  }
+  .portrait-frame-label{
+    position:absolute; bottom:10px; left:10px; font-family:var(--mono); font-size:9px; letter-spacing:0.12em;
+    color:var(--white-ind); background:rgba(8,10,13,0.6); border:1px solid var(--line); padding:4px 8px; border-radius:4px;
+  }
+  .portrait-frame-badge{
+    position:absolute; top:10px; right:10px; font-family:var(--mono); font-size:9px; letter-spacing:0.1em;
+    color:var(--led); border:1px solid var(--led-dim); padding:3px 8px; border-radius:10px; background:rgba(8,10,13,0.6);
+  }
+
+  .brush-arm{ position:absolute; pointer-events:auto; cursor:crosshair; filter:drop-shadow(0 6px 10px rgba(0,0,0,0.4)); }
+  .brush-arm .limb{ transform-origin: var(--ox,0) var(--oy,0); }
+  .arm-top{ top:-46px; left:50%; width:70px; height:110px; margin-left:-35px; }
+  .arm-top .limb{ animation:sweepTop 2.6s ease-in-out infinite; }
+  @keyframes sweepTop{ 0%,100%{ transform:rotate(-16deg); } 50%{ transform:rotate(16deg); } }
+
+  .arm-left{ top:30%; left:-52px; width:100px; height:60px; }
+  .arm-left .limb{ animation:sweepLeft 3.1s ease-in-out infinite; }
+  @keyframes sweepLeft{ 0%,100%{ transform:rotate(-10deg); } 50%{ transform:rotate(12deg); } }
+
+  .arm-right{ top:58%; right:-52px; width:100px; height:60px; transform:scaleX(-1); }
+  .arm-right .limb{ animation:sweepLeft 2.4s ease-in-out infinite reverse; }
+
+  .paint-drip{
+    position:absolute; width:3px; height:3px; border-radius:50%; background:var(--led);
+    animation:drip-fall 2.4s linear infinite;
+    opacity:0;
+  }
+  @keyframes drip-fall{
+    0%{ opacity:0; transform:translateY(0); }
+    10%{ opacity:0.9; }
+    80%{ opacity:0.5; }
+    100%{ opacity:0; transform:translateY(46px); }
+  }
+
+  .palette-strip{ display:flex; gap:10px; justify-content:center; margin-top:22px; }
+  .palette-dot{ width:16px; height:16px; border-radius:50%; border:1px solid var(--line); box-shadow: inset 0 1px 2px rgba(0,0,0,0.4); }
+
+  /* ============ ABOUT / BLUEPRINT ============ */
+  #about .grid-wrap{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:60px; align-items:center; }
+  @media (max-width:900px){ #about .grid-wrap{ grid-template-columns:1fr; } }
+
+  .blueprint{
+    position:relative; border:1px solid #22323d; border-radius:10px;
+    background:
+      linear-gradient(rgba(70,150,190,0.06) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg, rgba(70,150,190,0.06) 1px, transparent 1px) 0 0/28px 28px,
+      radial-gradient(circle at 30% 20%, #0e2430, #081218 70%);
+    padding:34px; min-height:420px;
+  }
+  .blueprint svg path.draw{
+    stroke-dasharray:1400; stroke-dashoffset:1400;
+  }
+  .blueprint.inview svg path.draw{
+    animation:drawline 2.6s ease forwards;
+  }
+  @keyframes drawline{ to{ stroke-dashoffset:0; } }
+
+  .stamp-line{ font-family:var(--mono); font-size:13px; color:var(--text-dim); opacity:0; transform:translateY(6px); transition:opacity 0.4s, transform 0.4s; margin-bottom:10px; border-left:2px solid var(--line); padding-left:12px; }
+  .stamp-line b{ color:var(--white-ind); font-weight:600; letter-spacing:0.02em; }
+  .blueprint.inview .stamp-line{ opacity:1; transform:none; }
+  .blueprint.inview .stamp-line:nth-child(1){ transition-delay:0.3s; }
+  .blueprint.inview .stamp-line:nth-child(2){ transition-delay:0.5s; }
+  .blueprint.inview .stamp-line:nth-child(3){ transition-delay:0.7s; }
+  .blueprint.inview .stamp-line:nth-child(4){ transition-delay:0.9s; }
+  .blueprint.inview .stamp-line:nth-child(5){ transition-delay:1.1s; }
+  .blueprint.inview .stamp-line:nth-child(6){ transition-delay:1.3s; }
+  .blueprint.inview .stamp-line:nth-child(7){ transition-delay:1.5s; }
+
+  #about p.lead{ font-size:17px; line-height:1.75; color:var(--text); max-width:52ch; }
+  .tag-row{ display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+  .tag{ font-family:var(--mono); font-size:11px; letter-spacing:0.08em; color:var(--text-dim); border:1px solid var(--line); padding:6px 12px; border-radius:20px; background:rgba(255,255,255,0.02); }
+
+  /* ============ EXPERIENCE / CONVEYOR ============ */
+  .conveyor-outer{ position:relative; padding:50px 0; }
+  .belt-track{ position:relative; height:2px; background:var(--line); margin:0 0 0; }
+  .belt-track::before{
+    content:""; position:absolute; inset:0; background-image:repeating-linear-gradient(90deg, var(--steel-hi) 0 12px, transparent 12px 24px);
+    animation:beltmove 1.4s linear infinite;
+  }
+  @keyframes beltmove{ to{ background-position-x:-24px; } }
+
+  .timeline{ display:flex; flex-direction:column; gap:0; }
+  .tl-row{ display:grid; grid-template-columns:120px 1fr; gap:26px; align-items:start; padding:26px 0; border-bottom:1px dashed var(--line); opacity:0; transform:translateY(18px); transition:opacity 0.6s ease, transform 0.6s ease; }
+  .tl-row.inview{ opacity:1; transform:none; }
+  .tl-year{ font-family:var(--mono); font-size:26px; color:var(--led); position:relative; }
+  .tl-year .rivet{ position:absolute; left:0; top:-16px; width:5px; height:5px; border-radius:50%; background:var(--led); box-shadow:0 0 6px var(--led); }
+  .tl-plate{
+    background:linear-gradient(160deg, #22262f, #171a20);
+    border:1px solid var(--line); border-radius:8px; padding:18px 22px;
+    position:relative; overflow:hidden;
+  }
+  .tl-plate::after{
+    content:""; position:absolute; inset:0; background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.05) 45%, transparent 60%);
+    background-size:220% 220%; animation:sheen 5s ease-in-out infinite;
+  }
+  @keyframes sheen{ 0%{ background-position:120% 0;} 100%{ background-position:-20% 0;} }
+  .tl-plate h4{ color:var(--white-ind); font-size:16px; margin-bottom:4px; }
+  .tl-plate span{ font-family:var(--mono); font-size:12px; color:var(--text-dim); }
+
+  /* ============ PORTFOLIO ============ */
+  .fab-line{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:26px; margin-top:10px; }
+  .fab-card{
+    position:relative; border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    background:linear-gradient(160deg, var(--panel-2), var(--panel));
+    padding:22px; min-height:230px; display:flex; flex-direction:column; justify-content:flex-end;
+    opacity:0; transform:translateY(20px); transition:opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fab-card.inview{ opacity:1; transform:none; }
+  .fab-frame{
+    position:absolute; inset:16px 16px auto 16px; height:90px;
+    border:1px dashed var(--line); border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.1em;
+  }
+  .fab-card .badge{ position:absolute; top:16px; right:16px; font-family:var(--mono); font-size:9px; color:var(--led); letter-spacing:0.1em; border:1px solid var(--led-dim); padding:3px 8px; border-radius:10px; }
+  .fab-card h4{ color:var(--white-ind); font-size:18px; margin-bottom:6px; }
+  .fab-card p{ font-size:13px; color:var(--text-dim); line-height:1.55; margin-bottom:14px; }
+  .progress-rail{ height:4px; background:var(--steel-lo); border-radius:2px; overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--led-dim), var(--led)); transition:width 1.4s cubic-bezier(.2,.8,.2,1); }
+  .fab-card.inview .progress-fill{ width:var(--fill); }
+  .fab-meta{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:6px; }
+
+  /* ============ SKILLS ============ */
+  .skill-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; margin-top:10px; }
+  .skill-machine{
+    border:1px solid var(--line); border-radius:10px; padding:22px;
+    background:linear-gradient(160deg, var(--panel-2), var(--panel));
+    display:flex; align-items:center; gap:16px; cursor:crosshair;
+    transition:border-color 0.3s, transform 0.3s;
+  }
+  .skill-machine:hover{ border-color:var(--led-dim); transform:translateY(-3px); }
+  .skill-icon{ width:52px; height:52px; flex:0 0 auto; }
+  .skill-name{ color:var(--white-ind); font-weight:600; font-size:15px; }
+  .skill-power{ font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:3px; }
+
+  /* ============ CONTACT / PNEUMATIC TUBE ============ */
+  #contact-rig{ display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; }
+  @media (max-width:900px){ #contact-rig{ grid-template-columns:1fr; } }
+  .tube-panel{ padding:32px; }
+  .field-row{ margin-bottom:18px; }
+  .field-row label{ display:block; font-family:var(--mono); font-size:10px; letter-spacing:0.16em; color:var(--text-dim); text-transform:uppercase; margin-bottom:8px; }
+  .field-row input, .field-row textarea{
+    width:100%; background:var(--steel-lo); border:1px solid var(--line); border-radius:6px;
+    padding:12px 14px; color:var(--white-ind); font-family:var(--sans); font-size:14px; outline:none; transition:border-color 0.2s, box-shadow 0.2s;
+  }
+  .field-row input:focus, .field-row textarea:focus{ border-color:var(--led); box-shadow:0 0 0 3px rgba(63,208,255,0.12); }
+  .field-row textarea{ min-height:100px; resize:vertical; }
+  #launch-btn{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    background:linear-gradient(160deg, #223040, #16202a); color:var(--white-ind);
+    border:1px solid var(--led-dim); border-radius:6px; padding:14px 22px; cursor:pointer;
+    transition:background 0.25s, box-shadow 0.25s; width:100%;
+  }
+  #launch-btn:hover{ box-shadow:0 0 0 3px rgba(63,208,255,0.12); }
+  #launch-btn:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  .tube-status{ font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:14px; min-height:16px; letter-spacing:0.04em; }
+  .tube-status.ok{ color:var(--led); }
+
+  footer{ text-align:center; padding:60px 20px 100px; font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:0.1em; }
+  footer .serial{ display:block; margin-top:8px; opacity:0.6; }
+
+  .reveal{ opacity:0; transform:translateY(16px); transition:opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.inview{ opacity:1; transform:none; }
+</style>
+</head>
+<body>
+
+<div id="wall">
+  <div class="wall-grid"></div>
+</div>
+<div class="vignette"></div>
+<div class="grain-noise"></div>
+
+<header>
+  <div class="brand"><span class="dot"></span> HASSAN&nbsp;/&nbsp;FACTORY&nbsp;UNIT&nbsp;01</div>
+  <nav>
+    <a href="#portrait">Portrait</a>
+    <a href="#about">About</a>
+    <a href="#experience">Experience</a>
+    <a href="#portfolio">Portfolio</a>
+    <a href="#skills">Skills</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ HERO ============ -->
+<section id="hero">
+  <div class="status-strip">
+    <span><span class="led"></span> REACTOR CORE ONLINE</span>
+    <span>UNIT&nbsp;01 · FAISALABAD, PK</span>
+    <span>UPTIME <span id="uptime">00:00:00</span></span>
+  </div>
+
+  <div id="reactor-wrap">
+    <svg id="reactor" width="420" height="420" viewBox="0 0 420 420" class="hoverable">
+      <defs>
+        <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#bdf3ff"/>
+          <stop offset="35%" stop-color="#3fd0ff"/>
+          <stop offset="100%" stop-color="#0a2a35" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3a4048"/>
+          <stop offset="100%" stop-color="#181b20"/>
+        </linearGradient>
+      </defs>
+
+      <!-- outer housing -->
+      <circle cx="210" cy="210" r="200" fill="none" stroke="url(#ring)" stroke-width="14"/>
+      <circle cx="210" cy="210" r="200" fill="none" stroke="#0008" stroke-width="1"/>
+
+      <!-- bolts -->
+      <g id="bolts"></g>
+
+      <!-- rotating gear ring -->
+      <g class="gear spin-cw" style="transform-origin:210px 210px;">
+        <g fill="none" stroke="#454c56" stroke-width="6">
+          <circle cx="210" cy="210" r="168"/>
+        </g>
+        <g id="teeth" fill="#454c56"></g>
+      </g>
+
+      <!-- inner counter ring -->
+      <g class="gear spin-ccw" style="transform-origin:210px 210px;">
+        <circle cx="210" cy="210" r="130" fill="none" stroke="#2c313a" stroke-width="10" stroke-dasharray="6 10"/>
+      </g>
+
+      <!-- core -->
+      <circle cx="210" cy="210" r="95" fill="url(#coreGlow)">
+        <animate attributeName="r" values="92;98;92" dur="3.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="210" cy="210" r="60" fill="#061418" stroke="#3fd0ff" stroke-width="2" opacity="0.8"/>
+      <text x="210" y="205" text-anchor="middle" font-family="SF Mono, monospace" font-size="11" fill="#bdf3ff" letter-spacing="2">STATUS</text>
+      <text x="210" y="222" text-anchor="middle" font-family="SF Mono, monospace" font-size="13" fill="#3fd0ff" letter-spacing="2">ONLINE</text>
+
+      <!-- pistons -->
+      <g id="pistons"></g>
+    </svg>
+  </div>
+
+  <div class="eyebrow">Senior WordPress Engineer · Plugin Architect · Founder</div>
+  <h1 class="hero-title">Manufacturing software,<br><span class="accent">one moving part at a time.</span></h1>
+  <p class="hero-sub">15+ years · Enterprise WordPress · PHP · JavaScript · Security · Architecture</p>
+
+  <div class="scroll-cue">SCROLL TO INSPECT LINE <div class="rail"></div></div>
+</section>
+
+<!-- ============ PORTRAIT PAINTING STATION ============ -->
+<section id="portrait">
+  <div class="eyebrow">Assembly Station 02 — Portrait Unit</div>
+  <h2 style="font-size:clamp(24px,3vw,34px); margin-bottom:6px;">Rendering the Operator</h2>
+  <p style="font-family:var(--mono); font-size:12px; color:var(--text-dim); letter-spacing:0.04em;">Three brush arms apply color in continuous passes. Grayscale substrate → finished portrait.</p>
+
+  <div class="portrait-rig" id="portraitRig">
+    <div class="brush-arm arm-top hoverable" data-tip-k="TASK" data-tip-v="PAINTING">
+      <svg class="limb" viewBox="0 0 70 110" width="70" height="110" style="--ox:35px; --oy:6px;">
+        <line x1="35" y1="6" x2="35" y2="70" stroke="#454c56" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="35" cy="6" r="7" fill="#2c313a" stroke="#3fd0ff" stroke-width="1.5"/>
+        <circle cx="35" cy="74" r="5" fill="#ff9d3f"/>
+      </svg>
+    </div>
+    <div class="brush-arm arm-left hoverable" data-tip-k="TASK" data-tip-v="PAINTING">
+      <svg class="limb" viewBox="0 0 100 60" width="100" height="60" style="--ox:6px; --oy:30px;">
+        <line x1="6" y1="30" x2="64" y2="30" stroke="#454c56" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="6" cy="30" r="7" fill="#2c313a" stroke="#3fd0ff" stroke-width="1.5"/>
+        <circle cx="68" cy="30" r="5" fill="#3fd0ff"/>
+      </svg>
+    </div>
+    <div class="brush-arm arm-right hoverable" data-tip-k="TASK" data-tip-v="PAINTING">
+      <svg class="limb" viewBox="0 0 100 60" width="100" height="60" style="--ox:6px; --oy:30px;">
+        <line x1="6" y1="30" x2="64" y2="30" stroke="#454c56" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="6" cy="30" r="7" fill="#2c313a" stroke="#3fd0ff" stroke-width="1.5"/>
+        <circle cx="68" cy="30" r="5" fill="#ff4d5e"/>
+      </svg>
+    </div>
+
+    <div class="portrait-frame hoverable" data-tip-k="UNIT" data-tip-v="PORTRAIT-01">
+      <img class="portrait-gray" src="http://hassan-raza.com/wp-content/uploads/2026/07/mhr.jpg" alt="Muhammad Hassan Raza" loading="lazy">
+      <img class="portrait-color" src="http://hassan-raza.com/wp-content/uploads/2026/07/mhr.jpg" alt="">
+      <div class="paint-edge"></div>
+      <div class="portrait-scanlines"></div>
+      <div class="portrait-frame-badge">LIVE</div>
+      <div class="portrait-frame-label">MUHAMMAD HASSAN RAZA</div>
+      <div class="paint-drip" style="left:22%; top:0; animation-delay:0.4s;"></div>
+      <div class="paint-drip" style="left:58%; top:0; animation-delay:1.6s;"></div>
+      <div class="paint-drip" style="left:80%; top:0; animation-delay:2.8s;"></div>
+    </div>
+  </div>
+
+  <div class="palette-strip">
+    <span class="palette-dot" style="background:#3fd0ff;"></span>
+    <span class="palette-dot" style="background:#ff9d3f;"></span>
+    <span class="palette-dot" style="background:#ff4d5e;"></span>
+    <span class="palette-dot" style="background:#eef2f6;"></span>
+    <span class="palette-dot" style="background:#454c56;"></span>
+  </div>
+</section>
+
+<!-- ============ ABOUT ============ -->
+<section id="about">
+  <div class="eyebrow">Unit Specification</div>
+  <div class="grid-wrap">
+    <div class="blueprint" id="blueprint">
+      <svg width="100%" height="260" viewBox="0 0 560 260">
+        <path class="draw" d="M20 40 H540 M20 40 V220 M20 220 H540 M540 40 V220" fill="none" stroke="#3fd0ff" stroke-width="1.2" opacity="0.7"/>
+        <path class="draw" d="M60 90 H340 M60 120 H420 M60 150 H300 M60 180 H380" fill="none" stroke="#3fd0ff" stroke-width="1" opacity="0.5"/>
+        <circle class="draw" cx="480" cy="70" r="18" fill="none" stroke="#3fd0ff" stroke-width="1.2" opacity="0.7"/>
+      </svg>
+      <div class="stamp-line"><b>NAME</b> — Hassan</div>
+      <div class="stamp-line"><b>ROLE</b> — Senior WordPress Engineer / Plugin Architect</div>
+      <div class="stamp-line"><b>FOUNDER</b> — Elevoire &amp; MajesticThemes</div>
+      <div class="stamp-line"><b>EXPERIENCE</b> — 15+ years</div>
+      <div class="stamp-line"><b>DOMAIN</b> — Enterprise WordPress</div>
+      <div class="stamp-line"><b>STACK</b> — PHP · JavaScript · Architecture</div>
+      <div class="stamp-line"><b>FOCUS</b> — Security Research</div>
+    </div>
+    <div>
+      <p class="lead">Every product on this line was engineered, not assembled from templates. Fifteen-plus years running WordPress at enterprise scale — from theme platforms serving thousands of installs to plugins built for the strict tolerances of the WordPress.org review queue.</p>
+      <div class="tag-row">
+        <span class="tag">PHP</span>
+        <span class="tag">JavaScript</span>
+        <span class="tag">WordPress Core</span>
+        <span class="tag">Plugin Architecture</span>
+        <span class="tag">Security Research</span>
+        <span class="tag">Product Strategy</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXPERIENCE ============ -->
+<section id="experience">
+  <div class="eyebrow">Production Timeline</div>
+  <h2 style="font-size:clamp(24px,3vw,34px); margin-bottom:30px;">Manufacturing Log</h2>
+  <div class="conveyor-outer">
+    <div class="belt-track"></div>
+    <div class="timeline" id="timeline">
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>2011</div><div class="tl-plate"><h4>WordPress Engineer</h4><span>Line commissioned — first production run.</span></div></div>
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>2013</div><div class="tl-plate"><h4>Senior Project Manager</h4><span>Throughput scaled across multiple product lines.</span></div></div>
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>InspiryThemes</div><div class="tl-plate"><h4>Product Engineering</h4><span>Theme platform manufacturing at scale.</span></div></div>
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>RealHomes</div><div class="tl-plate"><h4>Flagship Real Estate Platform</h4><span>High-volume theme product, continuous releases.</span></div></div>
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>MedicalPress</div><div class="tl-plate"><h4>Healthcare Theme Line</h4><span>Specialized tooling for medical practice sites.</span></div></div>
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>—</div><div class="tl-plate"><h4>Product Development</h4><span>Full-cycle ownership — spec to shipped release.</span></div></div>
+      <div class="tl-row"><div class="tl-year"><span class="rivet"></span>Elevoire</div><div class="tl-plate"><h4>Founder</h4><span>Independent plugin brand — current production floor.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PORTFOLIO ============ -->
+<section id="portfolio">
+  <div class="eyebrow">Product Line</div>
+  <h2 style="font-size:clamp(24px,3vw,34px); margin-bottom:30px;">Units Shipped</h2>
+  <div class="fab-line" id="fabLine">
+    <div class="fab-card" style="--fill:96%"><div class="fab-frame">REAL ESTATE PLATFORM</div><div class="badge">SHIPPED</div><h4>RealHomes</h4><p>Flagship real estate WordPress theme, engineered for high-volume agent listings.</p><div class="progress-rail"><div class="progress-fill"></div></div><div class="fab-meta"><span>QC PASS</span><span>96%</span></div></div>
+
+    <div class="fab-card" style="--fill:92%"><div class="fab-frame">HEALTHCARE PLATFORM</div><div class="badge">SHIPPED</div><h4>MedicalPress</h4><p>Practice-management theme for clinics and medical providers.</p><div class="progress-rail"><div class="progress-fill"></div></div><div class="fab-meta"><span>QC PASS</span><span>92%</span></div></div>
+
+    <div class="fab-card" style="--fill:89%"><div class="fab-frame">WELLNESS PLATFORM</div><div class="badge">SHIPPED</div><h4>HealthPress</h4><p>Lightweight health &amp; wellness site theme with modular components.</p><div class="progress-rail"><div class="progress-fill"></div></div><div class="fab-meta"><span>QC PASS</span><span>89%</span></div></div>
+
+    <div class="fab-card" style="--fill:91%"><div class="fab-frame">CONTENT PLATFORM</div><div class="badge">SHIPPED</div><h4>RecipePress</h4><p>Recipe publishing theme with structured schema markup baked in.</p><div class="progress-rail"><div class="progress-fill"></div></div><div class="fab-meta"><span>QC PASS</span><span>91%</span></div></div>
+
+    <div class="fab-card" style="--fill:88%"><div class="fab-frame">CONTENT PLATFORM</div><div class="badge">SHIPPED</div><h4>FoodRecipes</h4><p>Companion recipe theme tuned for food-blog publishers.</p><div class="progress-rail"><div class="progress-fill"></div></div><div class="fab-meta"><span>QC PASS</span><span>88%</span></div></div>
+
+    <div class="fab-card" style="--fill:74%"><div class="fab-frame">PLUGIN BRAND</div><div class="badge">IN PRODUCTION</div><h4>Elevoire</h4><p>Independent plugin line — active development, ongoing WordPress.org submissions.</p><div class="progress-rail"><div class="progress-fill"></div></div><div class="fab-meta"><span>BUILD</span><span>74%</span></div></div>
+  </div>
+</section>
+
+<!-- ============ SKILLS ============ -->
+<section id="skills">
+  <div class="eyebrow">Powertrain</div>
+  <h2 style="font-size:clamp(24px,3vw,34px); margin-bottom:30px;">System Components</h2>
+  <div class="skill-grid">
+    <div class="skill-machine" data-tip-k="RPM" data-tip-v="4,200"><svg class="skill-icon" viewBox="0 0 60 60"><circle cx="30" cy="30" r="24" fill="none" stroke="#454c56" stroke-width="5"/><g class="gear spin-cw" style="transform-origin:30px 30px"><rect x="27" y="2" width="6" height="10" fill="#454c56"/><rect x="27" y="48" width="6" height="10" fill="#454c56"/><rect x="2" y="27" width="10" height="6" fill="#454c56"/><rect x="48" y="27" width="10" height="6" fill="#454c56"/></g><circle cx="30" cy="30" r="10" fill="#3fd0ff" opacity="0.85"/></svg><div><div class="skill-name">PHP</div><div class="skill-power">Powers Engine A</div></div></div>
+
+    <div class="skill-machine" data-tip-k="RUNTIME" data-tip-v="15y 220d"><svg class="skill-icon" viewBox="0 0 60 60"><rect x="10" y="16" width="40" height="28" rx="4" fill="none" stroke="#454c56" stroke-width="4"/><g class="gear spin-ccw" style="transform-origin:30px 30px"><circle cx="30" cy="30" r="11" fill="none" stroke="#3fd0ff" stroke-width="3" stroke-dasharray="4 5"/></g></svg><div><div class="skill-name">JavaScript</div><div class="skill-power">Drives Robot Arms</div></div></div>
+
+    <div class="skill-machine" data-tip-k="LINE SPEED" data-tip-v="1.4 m/s"><svg class="skill-icon" viewBox="0 0 60 60"><rect x="6" y="26" width="48" height="8" rx="4" fill="#22262f" stroke="#454c56"/><g><rect x="10" y="27" width="6" height="6" fill="#3fd0ff"><animate attributeName="x" values="10;44;10" dur="2.4s" repeatCount="indefinite"/></rect></g></svg><div><div class="skill-name">WordPress</div><div class="skill-power">Runs Assembly Line</div></div></div>
+
+    <div class="skill-machine" data-tip-k="SCAN" data-tip-v="ACTIVE"><svg class="skill-icon" viewBox="0 0 60 60"><rect x="14" y="8" width="32" height="44" rx="3" fill="none" stroke="#454c56" stroke-width="4"/><rect x="18" y="14" width="24" height="3" fill="#3fd0ff" opacity="0.7"><animate attributeName="y" values="14;44;14" dur="2.6s" repeatCount="indefinite"/></rect></svg><div><div class="skill-name">Security</div><div class="skill-power">Runs Scanner</div></div></div>
+
+    <div class="skill-machine" data-tip-k="LOAD" data-tip-v="62%"><svg class="skill-icon" viewBox="0 0 60 60"><rect x="12" y="12" width="36" height="36" rx="4" fill="none" stroke="#454c56" stroke-width="4"/><circle cx="30" cy="30" r="4" fill="#3fd0ff"><animate attributeName="opacity" values="1;0.3;1" dur="1.6s" repeatCount="indefinite"/></circle><circle cx="20" cy="20" r="2" fill="#3fd0ff"/><circle cx="40" cy="40" r="2" fill="#3fd0ff"/><circle cx="40" cy="20" r="2" fill="#3fd0ff"/><circle cx="20" cy="40" r="2" fill="#3fd0ff"/></svg><div><div class="skill-name">Architecture</div><div class="skill-power">Central CPU</div></div></div>
+
+    <div class="skill-machine" data-tip-k="PRESSURE" data-tip-v="4.1 bar"><svg class="skill-icon" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="none" stroke="#454c56" stroke-width="4"/><line x1="30" y1="30" x2="30" y2="14" stroke="#3fd0ff" stroke-width="2"><animateTransform attributeName="transform" type="rotate" values="0 30 30; 40 30 30; -20 30 30; 0 30 30" dur="3.6s" repeatCount="indefinite"/></line></svg><div><div class="skill-name">Product Strategy</div><div class="skill-power">Regulates Output</div></div></div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section id="contact">
+  <div class="eyebrow">Dispatch</div>
+  <h2 style="font-size:clamp(24px,3vw,34px); margin-bottom:30px;">Send a Message</h2>
+  <div id="contact-rig">
+    <div>
+      <svg width="100%" height="220" viewBox="0 0 420 220">
+        <rect x="20" y="90" width="380" height="40" rx="20" fill="none" stroke="#454c56" stroke-width="6"/>
+        <circle id="pod" cx="60" cy="110" r="16" fill="#2c313a" stroke="#3fd0ff" stroke-width="2"/>
+        <circle cx="380" cy="110" r="10" fill="none" stroke="#3fd0ff" stroke-width="2" opacity="0.6"/>
+        <text x="200" y="170" text-anchor="middle" font-family="SF Mono, monospace" font-size="11" fill="#7d8794" letter-spacing="2">PNEUMATIC DISPATCH LINE</text>
+      </svg>
+    </div>
+    <div class="plate tube-panel">
+      <form id="tubeForm">
+        <div class="field-row"><label>Sender</label><input type="text" id="fName" required placeholder="Your name"></div>
+        <div class="field-row"><label>Return Address</label><input type="email" id="fEmail" required placeholder="you@company.com"></div>
+        <div class="field-row"><label>Payload</label><textarea id="fMsg" required placeholder="Describe the project…"></textarea></div>
+        <button type="submit" id="launch-btn">Seal &amp; Launch Capsule</button>
+        <div class="tube-status" id="tubeStatus"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  FACTORY UNIT 01 — HASSAN — ALL SYSTEMS NOMINAL
+  <span class="serial">SERIAL NO. WP-2011-ELV-9284 · BUILD RUNNING SINCE 2011</span>
+</footer>
+
+<div class="tooltip" id="tooltip"><span class="k"></span><span class="v"></span></div>
+
+<script>
+(function(){
+  // ---------- uptime counter ----------
+  var start = Date.now();
+  var uptimeEl = document.getElementById('uptime');
+  setInterval(function(){
+    var s = Math.floor((Date.now()-start)/1000);
+    var h = String(Math.floor(s/3600)).padStart(2,'0');
+    var m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    var sec = String(s%60).padStart(2,'0');
+    uptimeEl.textContent = h+':'+m+':'+sec;
+  }, 1000);
+
+  // ---------- reactor gear teeth + bolts ----------
+  var teeth = document.getElementById('teeth');
+  var n = 24, r1=168, r2=180, cx=210, cy=210;
+  var d = '';
+  for(var i=0;i<n;i++){
+    var a = (i/n)*Math.PI*2;
+    var x1 = cx + r1*Math.cos(a), y1 = cy + r1*Math.sin(a);
+    var x2 = cx + r2*Math.cos(a), y2 = cy + r2*Math.sin(a);
+    d += 'M'+x1.toFixed(1)+' '+y1.toFixed(1)+' L'+x2.toFixed(1)+' '+y2.toFixed(1)+' ';
+  }
+  var teethPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+  teethPath.setAttribute('d', d);
+  teethPath.setAttribute('stroke', '#454c56');
+  teethPath.setAttribute('stroke-width', '10');
+  teeth.appendChild(teethPath);
+
+  var bolts = document.getElementById('bolts');
+  var bn = 16, br = 200;
+  for(var i=0;i<bn;i++){
+    var a = (i/bn)*Math.PI*2;
+    var bx = cx + br*Math.cos(a), by = cy + br*Math.sin(a);
+    var c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', bx); c.setAttribute('cy', by); c.setAttribute('r', 3);
+    c.setAttribute('fill', '#0009');
+    bolts.appendChild(c);
+  }
+
+  // pistons around reactor
+  var pistons = document.getElementById('pistons');
+  var pn = 6, pr = 205;
+  for(var i=0;i<pn;i++){
+    var a = (i/pn)*Math.PI*2 + 0.3;
+    var px = cx + pr*Math.cos(a), py = cy + pr*Math.sin(a);
+    var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', px-3); rect.setAttribute('y', py-3);
+    rect.setAttribute('width', 6); rect.setAttribute('height', 6);
+    rect.setAttribute('fill', '#ffb347');
+    var anim = document.createElementNS('http://www.w3.org/2000/svg','animate');
+    anim.setAttribute('attributeName','opacity');
+    anim.setAttribute('values','0.2;1;0.2');
+    anim.setAttribute('dur', (1.8 + i*0.3)+'s');
+    anim.setAttribute('repeatCount','indefinite');
+    rect.appendChild(anim);
+    g.appendChild(rect);
+    pistons.appendChild(g);
+  }
+
+  // ---------- tooltip system ----------
+  var tip = document.getElementById('tooltip');
+  var tipK = tip.querySelector('.k');
+  var tipV = tip.querySelector('.v');
+
+  function showTip(el, k, v, evt){
+    tipK.textContent = k+':';
+    tipV.textContent = v;
+    tip.classList.add('show');
+    positionTip(evt || el.getBoundingClientRect());
+  }
+  function positionTip(evt){
+    var x = evt.clientX !== undefined ? evt.clientX : (evt.left + evt.width/2);
+    var y = evt.clientY !== undefined ? evt.clientY : evt.top;
+    tip.style.left = x+'px';
+    tip.style.top = y+'px';
+  }
+  function hideTip(){ tip.classList.remove('show'); }
+
+  document.getElementById('reactor-wrap').addEventListener('mousemove', function(e){
+    showTip(null, 'STATUS', 'ONLINE', e);
+  });
+  document.getElementById('reactor-wrap').addEventListener('mouseleave', hideTip);
+
+  document.querySelectorAll('#portraitRig [data-tip-k]').forEach(function(el){
+    el.addEventListener('mousemove', function(e){
+      showTip(null, el.dataset.tipK, el.dataset.tipV, e);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+
+  document.querySelectorAll('.skill-machine').forEach(function(el){
+    el.addEventListener('mousemove', function(e){
+      showTip(null, el.dataset.tipK, el.dataset.tipV, e);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+
+  document.querySelectorAll('.fab-card').forEach(function(el){
+    el.addEventListener('mousemove', function(e){
+      var fill = getComputedStyle(el).getPropertyValue('--fill').trim();
+      showTip(null, 'PROGRESS', fill, e);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+
+  // ---------- scroll reveal ----------
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add('inview'); }
+    });
+  }, {threshold:0.25});
+
+  document.querySelectorAll('.tl-row, .fab-card, #blueprint').forEach(function(el){ io.observe(el); });
+
+  // ---------- contact tube ----------
+  var form = document.getElementById('tubeForm');
+  var pod = document.getElementById('pod');
+  var statusEl = document.getElementById('tubeStatus');
+  var btn = document.getElementById('launch-btn');
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    btn.disabled = true;
+    statusEl.textContent = 'SEALING CAPSULE…';
+    statusEl.className = 'tube-status';
+
+    pod.setAttribute('cx', 60);
+    var progress = 0;
+    var seal = setInterval(function(){
+      progress += 8;
+      pod.setAttribute('r', 16 - Math.min(progress/20, 4));
+      if(progress >= 40){
+        clearInterval(seal);
+        statusEl.textContent = 'PRESSURE BUILDING…';
+        var launch = setInterval(function(){
+          var cx = parseFloat(pod.getAttribute('cx'));
+          pod.setAttribute('cx', cx + 16);
+          if(cx > 380){
+            clearInterval(launch);
+            statusEl.textContent = 'CAPSULE DELIVERED — MESSAGE RECEIVED';
+            statusEl.className = 'tube-status ok';
+            btn.disabled = false;
+            setTimeout(function(){
+              pod.setAttribute('cx', 60);
+              pod.setAttribute('r', 16);
+              form.reset();
+            }, 1400);
+          }
+        }, 24);
+      }
+    }, 60);
+  });
+})();
+</script>
+
+</body>
+</html>
